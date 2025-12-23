@@ -37,7 +37,6 @@ import {
 import { localizeArkhamDBBaseUrl } from "@/utils/arkhamdb";
 import { SPECIAL_CARD_CODES } from "@/utils/constants";
 import { cx } from "@/utils/cx";
-import { capitalize } from "@/utils/formatting";
 import { isEmpty } from "@/utils/is-empty";
 import { useHotkey } from "@/utils/use-hotkey";
 import { DeckDetail, DeckDetails } from "../deck-details";
@@ -472,22 +471,19 @@ function Sharing(props: { onArkhamDBUpload?: () => void; deck: ResolvedDeck }) {
 
   async function withToast(fn: () => Promise<unknown>, action: string) {
     const id = toast.show({
-      children: `${capitalize(action)} share...`,
+      children: t(`deck_view.sharing.${action}`),
       variant: "loading",
     });
 
     try {
       await fn();
       toast.dismiss(id);
-      toast.show({
-        children: `Share ${action} successful`,
-        variant: "success",
-        duration: 3000,
-      });
     } catch (err) {
       toast.dismiss(id);
       toast.show({
-        children: `Failed to ${action} share: ${(err as Error).message}`,
+        children: t(`deck_view.sharing.${action}_failed`, {
+          error: (err as Error).message,
+        }),
         variant: "error",
       });
     }
