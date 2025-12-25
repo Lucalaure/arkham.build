@@ -260,6 +260,10 @@ const tests = [
     "limited_card_pool_valid_with_duplicates",
   ],
   [
+    "valid: limited card pool with other signatures",
+    "limited_card_pool_valid_signatures",
+  ],
+  [
     "invalid: limited card pool with cards not in pool",
     "limited_card_pool_invalid_cards_not_in_pool",
   ],

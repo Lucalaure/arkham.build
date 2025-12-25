@@ -383,7 +383,7 @@ function validateLimitedCardPool(
     .map((se) => se.card)
     .filter(
       (card) =>
-        !card.subtype_code &&
+        card.xp != null &&
         !limitedPoolFilter(card) &&
         (deck.slots[card.code] ||
           deck.sideSlots?.[card.code] ||
