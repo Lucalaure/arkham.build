@@ -14,6 +14,7 @@ import { useListLayoutContext } from "./list-layout-context";
 import css from "./list-layout-no-sidebar.module.css";
 
 interface Props extends React.ComponentProps<typeof CardListContainer> {
+  omitBackButton?: boolean;
   titleString: string;
   title?: React.ReactNode;
 }
@@ -23,7 +24,7 @@ interface Props extends React.ComponentProps<typeof CardListContainer> {
  * This component should be removed and folded into a refactored ListLayout component.
  */
 export function ListLayoutNoSidebar(props: Props) {
-  const { title, titleString, ...rest } = props;
+  const { omitBackButton, title, titleString, ...rest } = props;
   const { t } = useTranslation();
 
   const { filtersOpen, setFiltersOpen } = useListLayoutContext();
@@ -69,9 +70,11 @@ export function ListLayoutNoSidebar(props: Props) {
       onClick={onContentClick}
     >
       <Masthead className={css["masthead"]}>
-        <Button onClick={goBack} variant="bare" size="sm">
-          <ChevronLeftIcon /> {t("common.back")}
-        </Button>
+        {!omitBackButton && (
+          <Button onClick={goBack} variant="bare" size="sm">
+            <ChevronLeftIcon /> {t("common.back")}
+          </Button>
+        )}
       </Masthead>
       <main
         className={cx(css["content"], !filtersOpen && css["collapsed-filters"])}

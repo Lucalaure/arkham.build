@@ -66,6 +66,7 @@ export function BrowseWithFilter(props: Props) {
     <CardModalProvider>
       <ListLayoutContextProvider>
         <ListLayoutNoSidebar
+          omitBackButton
           title={
             <>
               {icon} {title}
