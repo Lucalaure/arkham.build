@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useStore } from "@/store";
 import { selectActiveListSearch } from "@/store/selectors/lists";
@@ -34,6 +34,7 @@ export function CardSearch(props: Props) {
 
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
+  const iconSlotRef = useRef<HTMLDivElement>(null);
 
   const setSearchValue = useStore((state) => state.setSearchValue);
   const setSearchFlag = useStore((state) => state.setSearchFlag);
@@ -46,6 +47,20 @@ export function CardSearch(props: Props) {
   const easterEggHandler = useAgathaEasterEggTrigger();
 
   const [inputValue, setInputValue] = useState(search.value ?? "");
+  const [iconSlotSize, setIconSlotSize] = useState(0);
+
+  useEffect(() => {
+    const updateIconSlotSize = () => {
+      if (iconSlotRef.current) {
+        setIconSlotSize(iconSlotRef.current.getBoundingClientRect().width);
+      }
+    };
+
+    updateIconSlotSize();
+
+    window.addEventListener("resize", updateIconSlotSize, { passive: true });
+    return () => window.removeEventListener("resize", updateIconSlotSize);
+  }, []);
 
   const onShortcut = useCallback(() => {
     inputRef.current?.focus();
@@ -103,6 +118,28 @@ export function CardSearch(props: Props) {
     [setSearchFlag, resolvedDeck],
   );
 
+  const iconSlotNode = (
+    <DefaultTooltip
+      tooltip={search.buildQlError?.message}
+      options={{ paused: !search.buildQlError }}
+    >
+      <a
+        className={cx(
+          css["buildql-tag"],
+          search.mode === "buildql" && css["active"],
+        )}
+        href="https://github.com/arkham-build/arkham.build/blob/main/frontend/src/store/lib/buildql/buildql.md#buildql"
+        target="_blank"
+        rel="noreferrer"
+      >
+        <Tag size="xs">
+          {!!search.buildQlError && <ErrorBubble />}
+          BuildQL
+        </Tag>
+      </a>
+    </DefaultTooltip>
+  );
+
   return (
     <search className={cx(css["container"], css[mode])} data-testid="search">
       <div className={css["row"]}>
@@ -117,26 +154,11 @@ export function CardSearch(props: Props) {
             onChangeValue={onValueChange}
             onKeyDown={onInputKeyDown}
             placeholder={t("lists.search.placeholder")}
+            iconSlotSize={iconSlotSize}
             iconSlot={
-              <DefaultTooltip
-                tooltip={search.buildQlError?.message}
-                options={{ paused: !search.buildQlError }}
-              >
-                <a
-                  className={cx(
-                    css["buildql-tag"],
-                    search.mode === "buildql" && css["active"],
-                  )}
-                  href="https://github.com/arkham-build/arkham.build/blob/main/frontend/src/store/lib/buildql/buildql.md#buildql"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <Tag size="xs">
-                    {!!search.buildQlError && <ErrorBubble />}
-                    BuildQL
-                  </Tag>
-                </a>
-              </DefaultTooltip>
+              <div className={css["buildql-input-tag"]} ref={iconSlotRef}>
+                {iconSlotNode}
+              </div>
             }
             ref={inputRef}
             value={inputValue}
@@ -145,6 +167,7 @@ export function CardSearch(props: Props) {
         {slotRight}
       </div>
       <div className={css["flags"]}>
+        <div className={css["buildql-flags-tag"]}>{iconSlotNode}</div>
         <div className={css["flags-slot"]}>{slotFlags}</div>
         {}
         {search.mode === "simple" && (

@@ -1,5 +1,5 @@
 import { SearchIcon, XIcon } from "lucide-react";
-import { forwardRef, useCallback } from "react";
+import { forwardRef, useCallback, useMemo } from "react";
 import { cx } from "@/utils/cx";
 import { Button } from "./button";
 import css from "./search-input.module.css";
@@ -7,6 +7,7 @@ import css from "./search-input.module.css";
 interface Props extends React.ComponentProps<"input"> {
   className?: string;
   error?: Error;
+  iconSlotSize?: number;
   iconSlot?: React.ReactNode;
   inputClassName?: string;
   label?: string;
@@ -22,6 +23,7 @@ export const SearchInput = forwardRef<HTMLInputElement, Props>(
       className,
       error,
       iconSlot,
+      iconSlotSize,
       inputClassName,
       id,
       label,
@@ -45,6 +47,14 @@ export const SearchInput = forwardRef<HTMLInputElement, Props>(
       [onChangeValue],
     );
 
+    const cssVariables = useMemo(
+      () =>
+        ({
+          "--icon-slot-size": iconSlotSize ? `${iconSlotSize}px` : "0px",
+        }) as React.CSSProperties,
+      [iconSlotSize],
+    );
+
     return (
       <div
         className={cx(
@@ -53,6 +63,7 @@ export const SearchInput = forwardRef<HTMLInputElement, Props>(
           error && css["has-error"],
           className,
         )}
+        style={cssVariables}
       >
         {!omitSearchIcon && (
           <label htmlFor={id} title={label}>

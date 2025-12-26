@@ -25,7 +25,7 @@
 }
 
 .input {
-  padding-right: 2rem;
+  padding-right: calc(2rem + var(--icon-slot-size));
   width: 100%;
 }
 

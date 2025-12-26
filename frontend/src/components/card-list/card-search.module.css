@@ -81,7 +81,6 @@
 .buildql-tag {
   opacity: 0.4;
   cursor: help;
-  display: none;
   text-decoration: none;
 
   &:hover {
@@ -91,9 +90,21 @@
   &.active {
     opacity: 1;
   }
+}
+
+.buildql-input-tag {
+  display: none;
 
   @media screen and (min-width: 28rem) {
     display: block;
+  }
+}
+
+.buildql-flags-tag {
+  display: block;
+
+  @media screen and (min-width: 28rem) {
+    display: none;
   }
 }
 
