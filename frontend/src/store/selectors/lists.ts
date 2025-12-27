@@ -1581,15 +1581,21 @@ export const selectAvailableUpgrades = createSelector(
       for (const code of Object.keys(versions)) {
         const version = metadata.cards[code];
 
-        if (
-          !version.duplicate_of_code &&
-          version?.xp &&
-          version.xp > (card.xp ?? 0) &&
-          accessFilter?.(version)
-        ) {
-          availableUpgrades.upgrades[card.code] ??= [];
-          availableUpgrades.upgrades[card.code].push(version);
-        }
+        const isUpgrade = version?.xp && version.xp > (card.xp ?? 0);
+        if (!isUpgrade) continue;
+
+        const hasAccess = accessFilter?.(version);
+        if (!hasAccess) continue;
+
+        const isNotDuplicated =
+          !availableUpgrades.upgrades[card.code] ||
+          availableUpgrades.upgrades[card.code].every(
+            (c) => c.xp !== version.xp || c.subname !== version.subname,
+          );
+        if (!isNotDuplicated) continue;
+
+        availableUpgrades.upgrades[card.code] ??= [];
+        availableUpgrades.upgrades[card.code].push(version);
       }
     }
 
