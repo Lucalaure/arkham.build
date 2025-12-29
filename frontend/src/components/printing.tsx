@@ -9,11 +9,20 @@ type Props = {
   active?: boolean;
   actionNode?: React.ReactNode;
   className?: string;
+  linked?: boolean;
   printing: PrintingT;
 };
 
-export function Printing({ actionNode, active, className, printing }: Props) {
+export function Printing({
+  actionNode,
+  active,
+  className,
+  linked = true,
+  printing,
+}: Props) {
   const { pack, card } = printing;
+
+  const packName = displayPackName(pack);
 
   return (
     <PrintingInner
@@ -23,14 +32,18 @@ export function Printing({ actionNode, active, className, printing }: Props) {
       card={card}
       icon={<PackIcon code={pack.code} />}
       name={
-        <a
-          className="link-current"
-          href={`/browse/pack/${pack.code}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          {displayPackName(pack)}
-        </a>
+        linked ? (
+          <a
+            className="link-current"
+            href={`/browse/pack/${pack.code}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {packName}
+          </a>
+        ) : (
+          <span>{packName}</span>
+        )
       }
       position={card.position}
       quantity={card.quantity}

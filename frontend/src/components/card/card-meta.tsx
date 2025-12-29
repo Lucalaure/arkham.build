@@ -11,6 +11,7 @@ import css from "./card.module.css";
 
 type Props = {
   hideCollectorInfo?: boolean;
+  linked?: boolean;
   resolvedCard: ResolvedCard | CardWithRelations;
   onPrintingSelect?: (card: Card) => void;
   size: "tooltip" | "compact" | "full";
@@ -29,7 +30,7 @@ export function CardMetaBack(props: { illustrator?: string | null }) {
 }
 
 export function CardMeta(props: Props) {
-  const { onPrintingSelect, resolvedCard, size } = props;
+  const { linked = true, onPrintingSelect, resolvedCard, size } = props;
 
   const illustrator = resolvedCard.card.illustrator;
 
@@ -44,12 +45,14 @@ export function CardMeta(props: Props) {
       )}
       {card.encounter_code ? (
         <EncounterEntry
+          linked={linked}
           onPrintingSelect={onPrintingSelect}
           resolvedCard={resolvedCard}
           size={size}
         />
       ) : (
         <PlayerEntry
+          linked={linked}
           onPrintingSelect={onPrintingSelect}
           resolvedCard={resolvedCard}
           size={size}
@@ -60,7 +63,7 @@ export function CardMeta(props: Props) {
 }
 
 function PlayerEntry(props: Props) {
-  const { onPrintingSelect, resolvedCard } = props;
+  const { linked = true, onPrintingSelect, resolvedCard } = props;
 
   const { t } = useTranslation();
 
@@ -85,6 +88,7 @@ function PlayerEntry(props: Props) {
             <Printing
               active={active && hasVersions}
               key={printing.id}
+              linked={linked}
               printing={printing}
               actionNode={
                 !active && hasVersions && onPrintingSelect ? (
@@ -105,7 +109,7 @@ function PlayerEntry(props: Props) {
 }
 
 function EncounterEntry(props: Props) {
-  const { resolvedCard } = props;
+  const { linked = true, resolvedCard } = props;
 
   const printings = useStore((state) =>
     selectPrintingsForCard(state, resolvedCard.card.code),
@@ -125,14 +129,18 @@ function EncounterEntry(props: Props) {
           card={card}
           icon={<EncounterIcon code={card.encounter_code} />}
           name={
-            <a
-              className="link-current"
-              href={`/browse/encounter_set/${encounterSet.code}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {encounterSet.name}
-            </a>
+            linked ? (
+              <a
+                className="link-current"
+                href={`/browse/encounter_set/${encounterSet.code}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {encounterSet.name}
+              </a>
+            ) : (
+              <span>{encounterSet.name}</span>
+            )
           }
           position={getEncounterPositions(
             card.encounter_position ?? 1,
@@ -152,6 +160,7 @@ function EncounterEntry(props: Props) {
             <Printing
               active={active && hasVersions}
               key={printing.id}
+              linked={linked}
               printing={printing}
             />
           </p>

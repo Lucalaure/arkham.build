@@ -95,6 +95,7 @@ export function CardFace(props: Props) {
           )}
         </CardTabooText>
         <CardMeta
+          linked={size !== "tooltip"}
           onPrintingSelect={onPrintingSelect}
           resolvedCard={resolvedCard}
           size={size}
