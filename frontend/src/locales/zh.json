@@ -1126,7 +1126,6 @@
       "installed_content": "已安装内容",
       "messages": {
         "available_content_loading": "加载可用内容中...",
-        "content_installed": "内容已成功添加。",
         "content_loading": "正在加载内容...",
         "fetch_failed": "加载内容失败：{{error}}",
         "parse_failed": "添加内容失败：{{error}}",

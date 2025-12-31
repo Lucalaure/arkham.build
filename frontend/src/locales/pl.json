@@ -1156,7 +1156,6 @@
       "installed_content": "Zainstalowana zawartość",
       "messages": {
         "available_content_loading": "Wczytywanie dostępnej zawartości...",
-        "content_installed": "Zawartość została pomyślnie zainstalowana.",
         "content_loading": "Ładowanie zawartości...",
         "fetch_failed": "Nie udało się załadować zawartości: {{error}}",
         "parse_failed": "Nie udało się dodać zawartości: {{error}}",

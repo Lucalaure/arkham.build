@@ -1396,7 +1396,6 @@
       "installed_content": "Установленный контент",
       "messages": {
         "available_content_loading": "Загрузка доступного контента…",
-        "content_installed": "Контент успешно добавлен.",
         "content_loading": "Загрузка контента…",
         "fetch_failed": "Не удалось загрузить контент: {{error}}",
         "parse_failed": "Не удалось добавить контент: {{error}}",

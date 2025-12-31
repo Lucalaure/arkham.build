@@ -103,12 +103,6 @@ export function FanMadeContent(props: SettingProps) {
         );
 
         await addFanMadeProject(payload);
-
-        toast.show({
-          children: t("fan_made_content.messages.content_installed"),
-          variant: "success",
-          duration: 3000,
-        });
       } catch (err) {
         const message =
           err instanceof z.core.$ZodError

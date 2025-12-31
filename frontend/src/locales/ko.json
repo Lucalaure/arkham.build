@@ -1148,7 +1148,6 @@
       "installed_content": "설치된 콘텐츠",
       "messages": {
         "available_content_loading": "사용가능한 콘텐츠를 불러오는 중...",
-        "content_installed": "콘텐츠 추가가 성공하였습니다.",
         "content_loading": "콘텐츠 불러오는 중...",
         "fetch_failed": "콘텐츠를 불러오는데 실패함: {{error}}",
         "parse_failed": "콘텐츠를 추가하는데 실패함: {{error}}",
