@@ -56,6 +56,9 @@ export async function importDeckFromFile(
   ]);
 
   if (navigate) {
+    await page.getByTestId("collection-deck").hover({
+      force: true,
+    });
     await page.getByTestId("collection-deck").click();
   }
 
