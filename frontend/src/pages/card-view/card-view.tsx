@@ -231,7 +231,7 @@ function ListPrinting({
         ref={refs.setReference}
         to={url}
       >
-        <Printing printing={printing} />
+        <Printing printing={printing} linked={false} />
       </Link>
       {isMounted && (
         <FloatingPortal id={FLOATING_PORTAL_ID}>
