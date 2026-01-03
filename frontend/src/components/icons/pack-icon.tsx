@@ -42,7 +42,6 @@ function getPackIcon(code?: string) {
     case "core_2026":
       return "core_2026";
 
-    case "enc":
     case "hfa":
     case "otr":
     case "ptr":
@@ -288,6 +287,8 @@ function getPackIcon(code?: string) {
       return "blbe";
     case "film_fatale":
       return "film_fatale";
+    case "enc":
+      return "enthralling_encore";
 
     default:
       return null;
