@@ -84,11 +84,17 @@ export const createListsSlice: StateCreator<StoreState, [], [], ListsSlice> = (
       const list = state.lists[activeList];
       assert(list, `list ${activeList} not defined.`);
 
+      const initialValues = mergeInitialValues(
+        list.initialState.filterValues,
+        state.settings,
+      );
+
       return {
         lists: {
           ...state.lists,
           [activeList]: {
             ...list.initialState,
+            display: getDisplaySettings(initialValues, state.settings),
             initialState: list.initialState,
           },
         },
