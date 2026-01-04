@@ -1245,10 +1245,16 @@ export const selectCyclesAndPacks = createSelector(
   selectMetadata,
   selectLookupTables,
   (state: StoreState) => state.settings,
-  (metadata, lookupTables, settings) => {
+  (state: StoreState) => state.fanMadeData.projects,
+  (metadata, lookupTables, settings, fanMadeProjects) => {
     const cycles = Object.entries(lookupTables.packsByCycle).reduce(
       (acc, [cycleCode, packTable]) => {
         const cycle = metadata.cycles[cycleCode];
+
+        // filter cycles that are only present in fan-made content cache
+        if (cycle.official === false && !fanMadeProjects?.[cycle.code]) {
+          return acc;
+        }
 
         const packs: Pack[] = [];
         const reprintPacks: Pack[] = [];
@@ -1306,7 +1312,7 @@ const selectCycleChanges = createSelector(
   (_: StoreState, value: MultiselectFilter) => value,
   (metadata, value) => {
     return value
-      .map((id) => metadata.cycles[id].name)
+      .map((id) => displayPackName(metadata.cycles[id]))
       .join(` ${i18n.t("filters.or")} `);
   },
 );

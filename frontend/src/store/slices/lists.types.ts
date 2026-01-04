@@ -107,6 +107,7 @@ export type FilterKey = keyof FilterMapping;
 
 export type FilterObject<K extends FilterKey> = {
   open: boolean;
+  locked?: boolean;
   type: K;
   value: FilterMapping[K];
 };
@@ -162,7 +163,7 @@ export type ListDisplay = {
 
 export type List = {
   display: ListDisplay;
-  initialDisplay: Pick<ListDisplay, "grouping" | "sorting" | "viewMode">;
+  initialState: Omit<List, "initialState">;
   displaySortSelection: string;
   filters: FilterKey[];
   filtersEnabled: boolean;
@@ -191,6 +192,7 @@ export type ListsSlice = {
       showInvestigatorFilter?: boolean;
       search?: string;
       additionalFilters?: FilterKey[];
+      lockedFilters?: Set<FilterKey>;
     },
   ): void;
 
