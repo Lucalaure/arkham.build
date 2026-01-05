@@ -18,15 +18,9 @@ import { useAgathaEasterEggHint } from "./utils/easter-egg-agatha";
 
 const Index = lazy(() => import("./pages/index"));
 
-const Browse = lazy(() => import("./pages/browse/browse"));
-
-const BrowseEncounterSet = lazy(
-  () => import("./pages/browse/browse-encounter-set"),
+const { Browse, BrowseEncounterSet, BrowsePack, BrowseCycle } = await import(
+  "./pages/browse"
 );
-
-const BrowsePack = lazy(() => import("./pages/browse/browse-pack"));
-
-const BrowseCycle = lazy(() => import("./pages/browse/browse-cycle"));
 
 const DeckEdit = lazy(() => import("./pages/deck-edit/deck-edit"));
 
