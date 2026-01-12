@@ -18,7 +18,6 @@
     "knip": "npx knip",
     "prepare:e2e": " playwright install --with-deps",
     "preview": "vite preview",
-    "rules:sync": "node ./scripts/sync-rules.ts",
     "schema:fan-made-content": "node ./scripts/fan-made-content-schema.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

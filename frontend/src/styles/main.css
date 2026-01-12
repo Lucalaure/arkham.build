@@ -703,19 +703,19 @@
     line-height: 1.25;
   }
 
-  .longform :where(h1, h2) {
+  .longform h1 {
     font-size: 1.6411em;
   }
 
-  .longform h3 {
+  .longform h2 {
     font-size: 1.5157em;
   }
 
-  .longform h4 {
+  .longform h3 {
     font-size: 1.3195em;
   }
 
-  .longform h5 {
+  .longform :where(h4, h5) {
     font-size: 1.1487em;
   }
 

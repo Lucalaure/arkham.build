@@ -89,6 +89,11 @@
     padding: 0.5rem 0.75rem;
   }
 
+  .button.xl {
+    font-size: var(--text-base);
+    padding: 0.625rem 1rem;
+  }
+
   .button:not(.icon-only):not(.none) {
     min-width: 5ch;
   }
