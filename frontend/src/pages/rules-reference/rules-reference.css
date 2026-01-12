@@ -12,9 +12,9 @@ html[data-theme="light"] .rules {
   margin-inline: auto;
   position: relative;
 
-  @media screen and (min-width: 55rem) {
+  @media screen and (min-width: 58rem) {
     display: grid;
-    grid-template-columns: 25em 1fr;
+    grid-template-columns: 26rem 1fr;
     gap: 2rem;
   }
 }
@@ -27,7 +27,7 @@ html[data-theme="light"] .rules {
   z-index: 3;
   box-shadow: var(--shadow-lg);
 
-  @media screen and (min-width: 55rem) {
+  @media screen and (min-width: 58rem) {
     display: none;
   }
 }
@@ -35,16 +35,16 @@ html[data-theme="light"] .rules {
 .toc-container {
   background: var(--palette-point-five);
   border-radius: var(--rounded);
-  padding: 0.5rem;
+  padding: 0.625rem 0 0.625rem 0.625rem;
   border: 1px solid var(--palette-2);
   position: fixed;
   top: 0.25rem;
-  left: 0.25rem;
+  right: 0.25rem;
   flex-flow: column nowrap;
   height: 100%;
   z-index: 2;
   max-height: 90dvh;
-  max-width: 25rem;
+  max-width: 26rem;
   width: calc(100% - 0.5rem);
   box-shadow: var(--shadow);
   display: none;
@@ -53,10 +53,11 @@ html[data-theme="light"] .rules {
     display: flex;
   }
 
-  @media screen and (min-width: 55rem) {
+  @media screen and (min-width: 58rem) {
     display: flex;
     position: sticky;
     inset: unset;
+    right: initial;
     top: 0.25rem;
 
     &.open {
@@ -80,6 +81,7 @@ html[data-theme="light"] .rules {
 
 .toc-inner {
   flex: 1 1 auto;
+  padding-right: 0.625rem;
 }
 
 .toc-container > * + * {
