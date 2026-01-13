@@ -16,15 +16,11 @@
     "i18n:pull": "npx tsx ./scripts/i18n-pull && npm run fmt",
     "icons:export": "mkdir -p public/lucide && npm i lucide-static && cp -R node_modules/lucide-static/icons public/lucide && npm uninstall lucide-static",
     "knip": "npx knip",
-    "prepare:e2e": " playwright install --with-deps",
     "preview": "vite preview",
     "schema:fan-made-content": "node ./scripts/fan-made-content-schema.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "test:watch": "vitest watch",
-    "update-snapshots:local": "PW_TEST_HTML_REPORT_OPEN='never' playwright test --update-snapshots",
-    "update-snapshots:docker": "docker run -it --rm --ipc=host -v ..:/work/ mcr.microsoft.com/playwright:v1.57.0 /bin/bash -c 'cd /work && npm ci && cd frontend && PW_TEST_HTML_REPORT_OPEN=never npx playwright test --update-snapshots'"
+    "test:watch": "vitest watch"
   },
   "dependencies": {
     "@dnd-kit/core": "6.3.1",
@@ -60,7 +56,6 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20251225.0",
-    "@playwright/test": "1.57.0",
     "@types/react": "18.3.23",
     "@types/react-dom": "18.3.7",
     "@vitejs/plugin-react": "5.1.2",

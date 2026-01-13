@@ -1,3 +1,4 @@
+import path from "node:path";
 import { loadEnvFile } from "node:process";
 import {
   defineConfig,
@@ -5,9 +6,11 @@ import {
   type PlaywrightTestConfig,
 } from "@playwright/test";
 
+const rootDir = path.resolve(import.meta.dirname, "../..");
+
 try {
-  loadEnvFile();
-  loadEnvFile(".env.e2e");
+  loadEnvFile(path.join(rootDir, "frontend", ".env"));
+  loadEnvFile(path.join(import.meta.dirname, ".env.e2e"));
 } catch {}
 
 /**
@@ -15,7 +18,7 @@ try {
  */
 
 const config: PlaywrightTestConfig = {
-  testDir: "./src/test/e2e",
+  testDir: "./tests",
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -85,7 +88,7 @@ const config: PlaywrightTestConfig = {
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: "npm run build && npm run preview",
+        command: "cd ../../frontend && npm run build && npm run preview",
         url: "http://localhost:3000",
         reuseExistingServer: !process.env.CI,
       },

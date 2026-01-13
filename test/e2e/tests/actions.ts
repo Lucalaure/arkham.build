@@ -1,6 +1,6 @@
 import path from "node:path";
 import { expect, type Locator, type Page } from "@playwright/test";
-import { assert } from "@/utils/assert";
+import { assert } from "./assert";
 
 export async function importDeck(page: Page) {
   await page.goto("/");
@@ -52,7 +52,7 @@ export async function importDeckFromFile(
   const directory = import.meta.dirname;
 
   await fileChooser.setFiles([
-    path.join(directory, "../fixtures/decks", deckPath),
+    path.join(directory, "../../fixtures/decks", deckPath),
   ]);
 
   if (navigate) {
@@ -167,7 +167,9 @@ export async function importPackFromFile(page: Page, packPath: string) {
 
   const dir = import.meta.dirname;
 
-  await fileChooser.setFiles([path.join(dir, "../fixtures/stubs", packPath)]);
+  await fileChooser.setFiles([
+    path.join(dir, "../../fixtures/stubs", packPath),
+  ]);
 
   await page.waitForTimeout(300);
 }

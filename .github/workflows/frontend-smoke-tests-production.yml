@@ -28,8 +28,8 @@ jobs:
           cache: "npm"
           node-version-file: "package.json"
       - run: npm ci
-      - run: npm run prepare:e2e --workspace=frontend
-      - run: npm run test:e2e --workspace=frontend -- -g @smoke
+      - run: npm run prepare:e2e
+      - run: npm run test:e2e -- -g @smoke
       - uses: actions/upload-artifact@v4
         if: always()
         with:

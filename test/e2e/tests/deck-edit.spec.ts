@@ -1,5 +1,4 @@
 import test, { expect, type Page } from "@playwright/test";
-import { assert } from "@/utils/assert";
 import {
   adjustDeckCardQuantity,
   adjustListCardQuantity,
@@ -8,6 +7,7 @@ import {
   importDeckFromFile,
   waitForImagesLoaded,
 } from "./actions";
+import { assert } from "./assert";
 import { mockApiCalls } from "./mocks";
 
 test.beforeEach(async ({ page }) => {

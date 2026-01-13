@@ -410,6 +410,6 @@ async function uploadSealedDeck(page: Page) {
 
   const fileChooser = await fileChooserPromise;
   await fileChooser.setFiles([
-    path.join(directory, "../fixtures/stubs/sealed_deck_definition.csv"),
+    path.join(directory, "../../fixtures/stubs/sealed_deck_definition.csv"),
   ]);
 }

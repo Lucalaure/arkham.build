@@ -56,8 +56,8 @@ test.describe("deck collection", () => {
 
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles([
-      path.join(directory, "../fixtures/decks/extra_slots.json"),
-      path.join(directory, "../fixtures/decks/faction_select.json"),
+      path.join(directory, "../../fixtures/decks/extra_slots.json"),
+      path.join(directory, "../../fixtures/decks/faction_select.json"),
     ]);
 
     await expect(page.getByTestId("collection-deck")).toHaveCount(3);

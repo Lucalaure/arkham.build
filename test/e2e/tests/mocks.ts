@@ -1,22 +1,22 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: test code */
 import type { Page } from "@playwright/test";
-import allCardsResponse from "../fixtures/stubs/all_card.json" with {
+import allCardsResponse from "../../fixtures/stubs/all_card.json" with {
   type: "json",
 };
 
-import versionsResponse from "../fixtures/stubs/data_version.json" with {
+import versionsResponse from "../../fixtures/stubs/data_version.json" with {
   type: "json",
 };
 
-import fanMadeInvestigatorProject from "../fixtures/stubs/fan_made_investigator_project.json" with {
+import fanMadeInvestigatorProject from "../../fixtures/stubs/fan_made_investigator_project.json" with {
   type: "json",
 };
 
-import deckResponse from "../fixtures/stubs/get_deck.json" with {
+import deckResponse from "../../fixtures/stubs/get_deck.json" with {
   type: "json",
 };
 
-import metadataResponse from "../fixtures/stubs/metadata.json" with {
+import metadataResponse from "../../fixtures/stubs/metadata.json" with {
   type: "json",
 };
 

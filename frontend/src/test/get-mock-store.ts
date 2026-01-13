@@ -1,3 +1,6 @@
+import allCardStub from "@test/fixtures/stubs/all_card.json";
+import dataVersionStub from "@test/fixtures/stubs/data_version.json";
+import metadataStub from "@test/fixtures/stubs/metadata.json";
 import { useStore } from "@/store";
 import factions from "@/store/services/data/factions.json";
 import reprintPacks from "@/store/services/data/reprint_packs.json";
@@ -8,9 +11,6 @@ import type {
   DataVersionApiResponse,
   MetadataApiResponse,
 } from "@/store/services/queries";
-import allCardStub from "@/test/fixtures/stubs/all_card.json";
-import dataVersionStub from "@/test/fixtures/stubs/data_version.json";
-import metadataStub from "@/test/fixtures/stubs/metadata.json";
 import { packToApiFormat } from "@/utils/arkhamdb-json-format";
 
 function queryStubMetadata() {

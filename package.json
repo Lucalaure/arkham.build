@@ -13,13 +13,18 @@
   ],
   "scripts": {
     "fmt": "biome check --write",
-    "lint": "biome check"
+    "lint": "biome check",
+    "prepare:e2e": "playwright install --with-deps",
+    "test:e2e": "playwright test --config test/e2e/playwright.config.ts",
+    "update-snapshots:local": "PW_TEST_HTML_REPORT_OPEN='never' playwright test --config test/e2e/playwright.config.ts --update-snapshots",
+    "update-snapshots:docker": "docker run -it --rm --ipc=host -v .:/work/ mcr.microsoft.com/playwright:v1.57.0 /bin/bash -c 'cd /work && npm i && PW_TEST_HTML_REPORT_OPEN=never npx playwright test --config test/e2e/playwright.config.ts --update-snapshots'"
   },
   "dependencies": {
     "zod": "4.2.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.10",
+    "@playwright/test": "1.57.0",
     "@types/node": "24.10.4",
     "@vitest/coverage-v8": "4.0.16",
     "lefthook": "2.0.12",

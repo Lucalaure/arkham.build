@@ -11,7 +11,7 @@ This document contains critical information about working with this codebase. Fo
 
 - `npm run check -w <workspace>` - check types
 - `npm run test -w <workspace>` - run tests
-- `npm run test:e2e -w frontend` - run end-to-end tests
+- `npm run test:e2e` - run end-to-end tests
 - `npm run lint` - lint code
 - `npm run fmt` - format code
 

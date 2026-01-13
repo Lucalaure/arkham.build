@@ -137,7 +137,7 @@ describe("getChangeStats", () => {
 
     const resolveFixture = async (fileName: string) => {
       const deck = await import(
-        `@/test/fixtures/decks/upgrades/${fileName}.json`
+        `@test/fixtures/decks/upgrades/${fileName}.json`
       );
       return resolveDeck(
         { metadata: state.metadata, lookupTables, sharing: state.sharing },

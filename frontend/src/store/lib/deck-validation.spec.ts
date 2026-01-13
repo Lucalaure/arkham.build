@@ -309,7 +309,7 @@ describe("Deck Validation", () => {
   it.for(tests)("%s", async ([name, fileName]) => {
     const expectation = (name as string).startsWith("valid:");
     const deck = await import(
-      `@/test/fixtures/decks/validation/${fileName}.json`
+      `@test/fixtures/decks/validation/${fileName}.json`
     );
     const result = validate(store, deck);
     expect(result.valid).toEqual(expectation);
