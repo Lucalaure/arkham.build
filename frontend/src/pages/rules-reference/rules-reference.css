@@ -130,3 +130,11 @@ html[data-theme="light"] .rules {
 .rules .chart th {
   background-color: var(--palette-1);
 }
+
+.frame {
+  border: 1px solid var(--palette-1);
+  border-radius: var(--rounded);
+  padding: 0.25rem;
+  background: var(--palette-point-five);
+  box-shadow: var(--shadow);
+}
