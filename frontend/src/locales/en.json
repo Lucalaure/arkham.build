@@ -83,6 +83,7 @@
     },
     "choose_investigator": {
       "create_tooltip": "Create {{name}} deck",
+      "draft_tooltip": "Draft {{name}} deck",
       "title": "Choose investigator"
     },
     "collection_stats": {
@@ -842,6 +843,24 @@
       "sealed_deck": {
         "error": "Failed to fetch sealed deck: {{error}}",
         "loading": "Fetching sealed deck..."
+      }
+    },
+    "deck_draft": {
+      "title": "Draft Deck",
+      "setup": {
+        "cards_per_pick": "Cards per pick",
+        "cards_per_pick_help": "Number of card options shown each pick",
+        "start": "Start Draft",
+        "insufficient_cards": "Your collection doesn't have enough legal cards for this investigator. You need at least {{required}} cards but only have {{available}}."
+      },
+      "picking": {
+        "progress": "{{current}} / {{target}} cards",
+        "pick_card": "Pick a card"
+      },
+      "complete": {
+        "title": "Draft Complete",
+        "save": "Save Deck",
+        "restart": "Start Over"
       }
     },
     "deck_edit": {

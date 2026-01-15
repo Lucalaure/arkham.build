@@ -1,6 +1,11 @@
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: not relevant. */
 /** biome-ignore-all lint/a11y/noStaticElementInteractions: backdrop needs to be clickable. */
-import { ArrowDownIcon, ArrowUpIcon, CheckCircleIcon } from "lucide-react";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  CheckCircleIcon,
+  DicesIcon,
+} from "lucide-react";
 import { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
@@ -227,19 +232,30 @@ export function CardModal(props: Props) {
         <ModalActions>
           {cardWithRelations.card.type_code === "investigator" &&
             !isStaticInvestigator(cardWithRelations.card) && (
-              <Link
-                asChild
-                href={
-                  cardWithRelations.card.parallel
-                    ? `/deck/create/${cardWithRelations.card.alternate_of_code}?initial_investigator=${cardWithRelations.card.code}`
-                    : `/deck/create/${cardWithRelations.card.code}`
-                }
-                onClick={onCloseModal}
-              >
-                <Button as="a" data-testid="card-modal-create-deck">
-                  <i className="icon-deck" /> {t("deck.actions.create")}
-                </Button>
-              </Link>
+              <>
+                <Link
+                  asChild
+                  href={
+                    cardWithRelations.card.parallel
+                      ? `/deck/create/${cardWithRelations.card.alternate_of_code}?initial_investigator=${cardWithRelations.card.code}`
+                      : `/deck/create/${cardWithRelations.card.code}`
+                  }
+                  onClick={onCloseModal}
+                >
+                  <Button as="a" data-testid="card-modal-create-deck">
+                    <i className="icon-deck" /> {t("deck.actions.create")}
+                  </Button>
+                </Link>
+                <Link
+                  asChild
+                  href={`/deck/draft/${cardWithRelations.card.code}`}
+                  onClick={onCloseModal}
+                >
+                  <Button as="a" data-testid="card-modal-draft-deck">
+                    <DicesIcon /> {t("deck_draft.title")}
+                  </Button>
+                </Link>
+              </>
             )}
           <CardPageLink card={cardWithRelations.card} />
           <CardReviewsLink card={cardWithRelations.card} />

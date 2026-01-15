@@ -1,0 +1,250 @@
+.layout {
+  display: grid;
+  grid-template-areas:
+    "header header"
+    "sidebar content"
+    "footer footer";
+  grid-template-columns: minmax(min-content, 20rem) 1fr;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100dvh;
+  gap: 1rem;
+}
+
+.layout-no-sidebar {
+  grid-template-areas:
+    "header"
+    "content"
+    "footer";
+  grid-template-columns: 1fr;
+}
+
+.layout-header {
+  grid-area: header;
+}
+
+.layout-sidebar {
+  grid-area: sidebar;
+  padding-inline: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.layout-content {
+  grid-area: content;
+  padding-inline: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.layout-content:has(.setup-container) {
+  align-items: center;
+}
+
+.layout-footer {
+  grid-area: footer;
+}
+
+/* Setup phase styles */
+.setup-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 40rem;
+  width: 100%;
+}
+
+.setup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.setup-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.error-message {
+  padding: 1rem;
+  background: var(--palette-error-1);
+  border: 1px solid var(--palette-error-3);
+  border-radius: var(--rounded);
+  color: var(--palette-error-9);
+}
+
+/* Card picker styles - based on suzi-standalone-setup */
+.picker-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.picker-header {
+  display: flex;
+  flex-flow: row nowrap;
+  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.picker-progress {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.picker-options {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.picker-option {
+  list-style: none;
+}
+
+.option-trigger {
+  display: block;
+  width: 100%;
+  transition: transform 0.125s ease;
+  will-change: transform;
+  border-radius: var(--rounded-scan);
+  background: none;
+  border: none;
+  padding: 0;
+  user-select: none;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-0.25rem);
+    transition: transform 0.125s ease;
+  }
+
+  &:focus-visible {
+    transform: translateY(-0.25rem);
+    transition: transform 0.125s ease;
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+}
+
+.option-trigger img {
+  position: relative;
+  border-radius: var(--rounded-scan);
+  background: var(--palette-0);
+  transition:
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+}
+
+.option-trigger:focus-visible img,
+.option-trigger:hover img {
+  box-shadow: 0 0 calc(var(--level, 0) * 0.4rem) var(--accent-color);
+  transform: scale(1.02);
+  z-index: 3;
+}
+
+/* Progress sidebar styles */
+.progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.progress-header {
+  display: flex;
+  flex-flow: row nowrap;
+  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: var(--palette-1);
+  border-radius: var(--rounded);
+}
+
+.progress-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.progress-card {
+  display: flex;
+  flex-flow: row nowrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.375rem 0.5rem;
+  background: var(--palette-1);
+  border-radius: var(--rounded);
+  font-size: var(--text-sm);
+}
+
+.progress-card-quantity {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  padding: 0.125rem 0.375rem;
+  background: var(--accent-color, var(--palette-3));
+  border-radius: var(--rounded-sm);
+  font-weight: 600;
+  font-size: var(--text-xs);
+}
+
+.progress-card-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Complete phase styles */
+.complete-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 40rem;
+}
+
+.complete-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--palette-2);
+}
+
+/* Investigator card display */
+.investigator-card {
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-areas:
+      "header"
+      "content"
+      "sidebar"
+      "footer";
+    grid-template-columns: 1fr;
+  }
+
+  .picker-options {
+    grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  }
+}
