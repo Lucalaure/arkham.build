@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { CardScanControlled } from "@/components/card-scan";
 import { useStore } from "@/store";
+import { applyCardChanges } from "@/store/lib/card-edits";
 import type { Card } from "@/store/schemas/card.schema";
 import { selectMetadata } from "@/store/selectors/shared";
 import { cardLevel } from "@/utils/card-utils";
@@ -17,10 +18,24 @@ export function DraftPicker(props: Props) {
   const { t } = useTranslation();
 
   const metadata = useStore(selectMetadata);
+  const tabooSetId = useStore((state) => state.draft?.tabooSetId);
 
   const cards = options
     .map((code) => metadata.cards[code])
-    .filter((card): card is Card => !!card);
+    .filter((card): card is Card => !!card)
+    .map((card) => {
+      if (!tabooSetId) return card;
+      const tabooCard = applyCardChanges(card, metadata, tabooSetId, undefined);
+      // Ensure taboo_set_id is set on the card so CardScanControlled can use it for image loading
+      // The taboo object should include taboo_set_id, but we ensure it's set explicitly
+      if (
+        !tabooCard.taboo_set_id &&
+        metadata.taboos[`${card.code}-${tabooSetId}`]
+      ) {
+        tabooCard.taboo_set_id = tabooSetId;
+      }
+      return tabooCard;
+    });
 
   return (
     <div className={css["picker-container"]}>

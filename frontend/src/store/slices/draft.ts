@@ -1,14 +1,16 @@
 import type { StateCreator } from "zustand";
 import { assert } from "@/utils/assert";
-import { isSpecialCard } from "@/utils/card-utils";
+import { displayAttribute, isSpecialCard } from "@/utils/card-utils";
+import { currentEnvironmentPacks } from "@/utils/environments";
 import { range } from "@/utils/range";
 import { shuffle } from "@/utils/shuffle";
 import type { DeckOption } from "../schemas/card.schema";
+import { selectConnectionsData } from "../selectors/connections";
 import {
   selectAvailableDraftCards,
   selectSignatureCards,
 } from "../selectors/draft";
-import { selectMetadata } from "../selectors/shared";
+import { selectMetadata, selectSettingsTabooId } from "../selectors/shared";
 import type { StoreState } from ".";
 import type { DraftSlice } from "./draft.types";
 
@@ -18,41 +20,78 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
 ) => ({
   draft: undefined,
 
-  initDraft(investigatorCode, cardsPerPick, tabooSetId) {
-    const state = get();
-    const metadata = selectMetadata(state);
+  initDraft(investigatorCode, initialInvestigatorChoice) {
+    set((state) => {
+      const metadata = selectMetadata(state);
+      const settings = state.settings;
 
-    const investigator = metadata.cards[investigatorCode];
-    assert(
-      investigator && investigator.type_code === "investigator",
-      "Draft must be initialized with an investigator card.",
-    );
+      const investigator = metadata.cards[investigatorCode];
+      assert(
+        investigator && investigator.type_code === "investigator",
+        "Draft must be initialized with an investigator card.",
+      );
 
-    // Get signature cards
-    const signatureCards = selectSignatureCards(state, investigatorCode);
+      const choice = initialInvestigatorChoice
+        ? metadata.cards[initialInvestigatorChoice]
+        : undefined;
 
-    // Get the back card code - this is where deck_requirements are defined
-    // For double-sided investigators, we need the back card
-    const backCardCode = investigator.back_link_id ?? investigatorCode;
-    const backCard = metadata.cards[backCardCode];
-    assert(backCard, "Back card must exist for investigator.");
+      if (initialInvestigatorChoice) {
+        assert(
+          choice && choice.type_code === "investigator",
+          "Draft must be initialized with an investigator card.",
+        );
 
-    // Get base deck size from back card's deck_requirements
-    // Signatures don't count toward the draft target - they're added separately
-    // Note: targetDeckSize will be recalculated dynamically as cards are picked
-    const baseDeckSize = backCard.deck_requirements?.size ?? 30;
+        assert(
+          choice.real_name === investigator.real_name,
+          "Parallel investigator must have the same real name as the investigator.",
+        );
+      }
 
-    set({
-      draft: {
-        phase: "setup",
-        investigatorCode,
-        cardsPerPick,
-        pickedCards: {},
-        signatureCards,
-        currentOptions: [],
-        targetDeckSize: baseDeckSize,
-        tabooSetId,
-      },
+      const connections = selectConnectionsData(state);
+      const provider = settings.defaultStorageProvider;
+
+      // when arkhamdb is set as default storage, but not available, default to local.
+      const providerExists =
+        provider !== "arkhamdb" ||
+        connections.some((c) => c.provider === provider);
+
+      // Apply current environment packs if default environment is set to "current"
+      // This matches deck-create behavior - manual selections will override this
+      const cardPool =
+        settings.defaultEnvironment === "current"
+          ? currentEnvironmentPacks(Object.values(metadata.cycles))
+          : undefined;
+
+      // Determine the back card code (where deck_requirements are defined)
+      const backCardCode = choice
+        ? choice.code
+        : (investigator.back_link_id ?? investigatorCode);
+      const backCard = metadata.cards[backCardCode];
+      assert(backCard, "Back card must exist for investigator.");
+
+      // Get signature cards using the back card code
+      const signatureCards = selectSignatureCards(state, backCardCode);
+
+      const baseDeckSize = backCard.deck_requirements?.size ?? 30;
+
+      return {
+        draft: {
+          phase: "setup",
+          investigatorCode,
+          investigatorFrontCode: choice ? choice.code : investigator.code,
+          investigatorBackCode: backCardCode,
+          cardsPerPick: 5,
+          pickedCards: {},
+          signatureCards,
+          currentOptions: [],
+          targetDeckSize: baseDeckSize,
+          tabooSetId: selectSettingsTabooId(settings, metadata),
+          provider: providerExists ? provider : "local",
+          title: `${displayAttribute(investigator, "name")} Draft`,
+          selections: {},
+          cardPool,
+        },
+      };
     });
   },
 
@@ -76,13 +115,11 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
     assert(state.draft, "Draft must be initialized.");
 
     const { draft } = state;
-    const { pickedCards, cardsPerPick, investigatorCode } = draft;
+    const { pickedCards, cardsPerPick, investigatorBackCode } = draft;
 
-    // Calculate dynamic target deck size based on picked cards that adjust deck size
+    // Use investigatorBackCode for card pool selection since deck building rules are on the back card
     const metadata = selectMetadata(state);
-    const investigator = metadata.cards[investigatorCode];
-    const backCardCode = investigator?.back_link_id ?? investigatorCode;
-    const backCard = metadata.cards[backCardCode];
+    const backCard = metadata.cards[investigatorBackCode];
     const baseDeckSize = backCard?.deck_requirements?.size ?? 30;
 
     // Calculate deck size adjustment from picked cards
@@ -131,9 +168,12 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
 
     // Get available cards (filtered by faction limits and deck limits)
     // Include additional deck options from picked cards
+    // Use investigatorBackCode since deck building rules are on the back card
+    // Note: selector expects 5 args: state, cardPoolFromState (extracted internally), investigatorCode, pickedCards, additionalDeckOptions
+    // But reselect handles the internal extraction, so we pass: state, investigatorCode, pickedCards, additionalDeckOptions
     const availableCards = selectAvailableDraftCards(
       state,
-      investigatorCode,
+      investigatorBackCode,
       pickedCards,
       additionalDeckOptions,
     );
@@ -174,5 +214,145 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
 
   resetDraft() {
     set({ draft: undefined });
+  },
+
+  draftSetTitle(value: string) {
+    set((state) => {
+      assert(state.draft, "Draft must be initialized.");
+      return {
+        draft: {
+          ...state.draft,
+          title: value,
+        },
+      };
+    });
+  },
+
+  draftSetTabooSet(value: number | undefined) {
+    set((state) => {
+      assert(state.draft, "Draft must be initialized.");
+      return {
+        draft: {
+          ...state.draft,
+          tabooSetId: value,
+        },
+      };
+    });
+  },
+
+  draftSetProvider(value) {
+    set((state) => {
+      assert(state.draft, "Draft must be initialized.");
+      return {
+        draft: {
+          ...state.draft,
+          provider: value,
+        },
+      };
+    });
+  },
+
+  draftSetInvestigatorCode(value: string, side?: "front" | "back") {
+    set((state) => {
+      assert(state.draft, "Draft must be initialized.");
+
+      if (!side) {
+        return {
+          draft: {
+            ...state.draft,
+            investigatorCode: value,
+            investigatorFrontCode: value,
+            investigatorBackCode: value,
+            // Regenerate signature cards when back changes
+            signatureCards: selectSignatureCards(state, value),
+          },
+        };
+      }
+
+      const path =
+        side === "front" ? "investigatorFrontCode" : "investigatorBackCode";
+
+      const updatedDraft = {
+        ...state.draft,
+        [path]: value,
+      };
+
+      // If back changed, regenerate signature cards and reset picked cards
+      if (side === "back") {
+        const metadata = selectMetadata(state);
+        const backCard = metadata.cards[value];
+        const baseDeckSize = backCard?.deck_requirements?.size ?? 30;
+
+        return {
+          draft: {
+            ...updatedDraft,
+            signatureCards: selectSignatureCards(state, value),
+            targetDeckSize: baseDeckSize,
+            // Reset picked cards since card pool changed
+            pickedCards: {},
+            currentOptions: [],
+          },
+        };
+      }
+
+      return {
+        draft: updatedDraft,
+      };
+    });
+  },
+
+  draftSetSelection(key, value) {
+    set((state) => {
+      assert(state.draft, "Draft must be initialized.");
+      return {
+        draft: {
+          ...state.draft,
+          selections: {
+            ...state.draft.selections,
+            [key]: value,
+          },
+        },
+      };
+    });
+  },
+
+  draftSetCardPool(value) {
+    set((state) => {
+      assert(state.draft, "Draft must be initialized.");
+      // When user manually sets card pool, it overrides default environment
+      // Empty array [] means "no card pool filter" (all cards available) - set to null to distinguish from undefined
+      // Array with items means filter to those packs
+      // undefined means "use default environment from settings" (if set during init)
+      return {
+        draft: {
+          ...state.draft,
+          cardPool: value.length === 0 ? null : value,
+        },
+      };
+    });
+  },
+
+  draftSetSealed(sealed) {
+    set((state) => {
+      assert(state.draft, "Draft must be initialized.");
+      return {
+        draft: {
+          ...state.draft,
+          sealed,
+        },
+      };
+    });
+  },
+
+  draftSetCardsPerPick(value) {
+    set((state) => {
+      assert(state.draft, "Draft must be initialized.");
+      return {
+        draft: {
+          ...state.draft,
+          cardsPerPick: value,
+        },
+      };
+    });
   },
 });

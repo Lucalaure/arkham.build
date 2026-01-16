@@ -16,27 +16,33 @@ import {
   selectLookupTables,
   selectMetadata,
 } from "@/store/selectors/shared";
-import { displayAttribute, getCardColor } from "@/utils/card-utils";
+import { getCardColor } from "@/utils/card-utils";
 import { cx } from "@/utils/cx";
 import { useAccentColor } from "@/utils/use-accent-color";
 import css from "./draft-editor.module.css";
 
 type Props = {
   investigatorCode: string;
+  investigatorFrontCode: string;
+  investigatorBackCode: string;
   pickedCards: Record<string, number>;
   signatureCards: Record<string, number>;
   currentCount: number;
   targetCount: number;
   investigatorName: string;
+  title: string;
   tabooSetId: number | null;
 };
 
 export function DraftEditor(props: Props) {
   const {
     investigatorCode,
+    investigatorFrontCode,
+    investigatorBackCode,
     pickedCards,
     signatureCards,
     investigatorName,
+    title,
     tabooSetId,
   } = props;
   const { t } = useTranslation();
@@ -46,7 +52,8 @@ export function DraftEditor(props: Props) {
   const collator = useStore(selectLocaleSortingCollator);
   const settings = useStore((state) => state.settings);
 
-  const investigator = metadata.cards[investigatorCode];
+  // Use front code for display (the card shown)
+  const investigator = metadata.cards[investigatorFrontCode];
 
   // Create a temporary deck structure to use with existing components
   const draftDeck = useMemo(() => {
@@ -59,12 +66,26 @@ export function DraftEditor(props: Props) {
     };
 
     // Create a minimal deck
+    // investigatorCode is the base investigator code from the URL
+    // Store parallel front/back selections in deck meta so resolveDeck can resolve them correctly
+    const meta: Record<string, string | null> = {};
+
+    // Only set alternate_front if it's different from the base investigator
+    if (investigatorFrontCode !== investigatorCode) {
+      meta.alternate_front = investigatorFrontCode;
+    }
+
+    // Only set alternate_back if it's different from the base investigator
+    if (investigatorBackCode !== investigatorCode) {
+      meta.alternate_back = investigatorBackCode;
+    }
+
     const deck = createDeck({
       investigator_code: investigatorCode,
       investigator_name: investigatorName,
-      name: `${displayAttribute(investigator, "name")} (Draft)`,
+      name: title,
       slots,
-      meta: JSON.stringify({}),
+      meta: JSON.stringify(meta),
       taboo_id: tabooSetId ?? null,
       problem: null,
     });
@@ -82,7 +103,10 @@ export function DraftEditor(props: Props) {
   }, [
     investigator,
     investigatorCode,
+    investigatorFrontCode,
+    investigatorBackCode,
     investigatorName,
+    title,
     pickedCards,
     signatureCards,
     tabooSetId,
@@ -163,9 +187,7 @@ export function DraftEditor(props: Props) {
   return (
     <div className={css["editor"]} style={cssVariables} data-testid="editor">
       <header className={cx(css["editor-header"], backgroundCls)}>
-        <h1 className={css["editor-title"]}>
-          {displayAttribute(investigator, "name")} (Draft)
-        </h1>
+        <h1 className={css["editor-title"]}>{title}</h1>
         <DraftStats
           deckSize={deckStats.deckSize}
           deckSizeTotal={deckStats.deckSizeTotal}

@@ -1,24 +1,65 @@
 import { createSelector } from "reselect";
 import { applyCardChanges } from "@/store/lib/card-edits";
 import {
+  filterCardPool,
   filterDuplicates,
   filterInvestigatorAccess,
-  filterLevel,
   filterOwnership,
+  filterSealed,
   makeOptionFilter,
 } from "@/store/lib/filtering";
 import { resolveCardWithRelations } from "@/store/lib/resolve-card";
+import type { CardWithRelations, SealedDeck } from "@/store/lib/types";
 import type { Card, DeckOption } from "@/store/schemas/card.schema";
 import type { StoreState } from "@/store/slices";
-import { cardLimit } from "@/utils/card-utils";
+import { assert } from "@/utils/assert";
+import { cardLimit, realCardLevel } from "@/utils/card-utils";
 import { SPECIAL_CARD_CODES } from "@/utils/constants";
-import { and } from "@/utils/fp";
+import { currentEnvironmentPacks } from "@/utils/environments";
+import { and, or } from "@/utils/fp";
 import {
   selectCollection,
   selectLocaleSortingCollator,
   selectLookupTables,
   selectMetadata,
 } from "./shared";
+
+export function selectDraftChecked(state: StoreState) {
+  const { draft } = state;
+  assert(draft, "Draft must be initialized.");
+  return draft;
+}
+
+export const selectDraftInvestigators = createSelector(
+  selectDraftChecked,
+  selectMetadata,
+  selectLookupTables,
+  selectLocaleSortingCollator,
+  (draft, metadata, lookupTables, collator) => {
+    return Object.entries({
+      investigator: draft.investigatorCode,
+      back: draft.investigatorBackCode,
+      front: draft.investigatorFrontCode,
+    }).reduce(
+      (acc, [key, code]) => {
+        const card = resolveCardWithRelations(
+          { metadata, lookupTables },
+          collator,
+          code,
+          draft.tabooSetId,
+          undefined,
+          true,
+        );
+
+        assert(card, `${key} card must be resolved.`);
+
+        acc[key] = card;
+        return acc;
+      },
+      {} as Record<string, CardWithRelations>,
+    );
+  },
+);
 
 /**
  * Select the base pool of cards available for drafting.
@@ -31,19 +72,63 @@ export const selectDraftCardPool = createSelector(
     selectLookupTables,
     selectCollection,
     (state: StoreState) => state.settings.showAllCards,
+    (state: StoreState) => state.settings.defaultEnvironment,
     (_: StoreState, investigatorCode: string) => investigatorCode,
+    (
+      _: StoreState,
+      _investigatorCode: string,
+      additionalDeckOptions: DeckOption[] = [],
+    ) => additionalDeckOptions,
+    (
+      _: StoreState,
+      _investigatorCode: string,
+      _additionalDeckOptions: DeckOption[],
+      cardPool: string[] | undefined | null,
+    ) => cardPool,
+    (
+      _: StoreState,
+      _investigatorCode: string,
+      _additionalDeckOptions: DeckOption[],
+      _cardPool: string[] | undefined | null,
+      sealed: SealedDeck | undefined,
+    ) => sealed,
+    (
+      _: StoreState,
+      _investigatorCode: string,
+      _additionalDeckOptions: DeckOption[],
+      _cardPool: string[] | undefined | null,
+      _sealed: SealedDeck | undefined,
+      tabooSetId: number | undefined,
+    ) => tabooSetId,
   ],
-  (metadata, lookupTables, collection, showAllCards, investigatorCode) => {
+  (
+    metadata,
+    lookupTables,
+    collection,
+    showAllCards,
+    defaultEnvironment,
+    investigatorCode,
+    additionalDeckOptions,
+    cardPool: string[] | undefined | null,
+    sealed: SealedDeck | undefined,
+    tabooSetId: number | undefined,
+  ) => {
     const investigator = metadata.cards[investigatorCode];
     if (!investigator) return [];
 
-    const cardAccessFilter = filterInvestigatorAccess(investigator);
+    const cardAccessFilter = filterInvestigatorAccess(investigator, {
+      additionalDeckOptions,
+    });
     if (!cardAccessFilter) return [];
 
     const filters = [
       filterDuplicates,
-      // Only include level 0 cards for draft
-      filterLevel({ range: [0, 0] }, investigator),
+      // Only include level 0 cards for draft (accounting for taboo_xp)
+      // After taboo is applied, cards with taboo_xp should be filtered out if their effective level > 0
+      (c: Card) => {
+        const level = realCardLevel(c);
+        return level === 0 || level === null;
+      },
       cardAccessFilter,
       // Exclude signatures (cards restricted to specific investigators)
       (c: Card) => !c.restrictions?.investigator,
@@ -53,16 +138,75 @@ export const selectDraftCardPool = createSelector(
       (c: Card) => c.code !== SPECIAL_CARD_CODES.RANDOM_BASIC_WEAKNESS,
     ];
 
-    // Apply ownership filter unless "show all cards" is enabled
-    if (!showAllCards) {
+    // Apply card pool filter
+    // cardPool === undefined: use default environment from settings (if set)
+    // cardPool === null: user explicitly cleared it, no filter (all cards available)
+    // cardPool === [...]: user manually selected packs OR initialized from settings, filter to those packs
+    let effectiveCardPool: string[] | undefined;
+
+    if (cardPool === null) {
+      // User explicitly cleared card pool - no filter
+      effectiveCardPool = undefined;
+    } else if (cardPool !== undefined && cardPool.length > 0) {
+      // User manually selected packs OR initialized from settings - use those packs
+      effectiveCardPool = cardPool;
+    } else if (cardPool === undefined && defaultEnvironment === "current") {
+      // No cardPool set and default environment is "current" - use current environment packs
+      effectiveCardPool = currentEnvironmentPacks(
+        Object.values(metadata.cycles),
+      );
+    }
+
+    // Determine if user manually selected a card pool (not using default environment)
+    const hasManualCardPool =
+      cardPool !== undefined && cardPool !== null && cardPool.length > 0;
+    const hasSealedDeck = sealed !== undefined && sealed.cards !== undefined;
+
+    // Apply ownership filter unless "show all cards" is enabled OR user manually selected a card pool OR sealed deck is set
+    // When user manually selects packs or sealed deck, they should see all cards regardless of collection
+    if (!showAllCards && !hasManualCardPool && !hasSealedDeck) {
       filters.push((c: Card) =>
         filterOwnership(c, metadata, lookupTables, collection, false),
       );
     }
 
-    return Object.values(metadata.cards)
-      .map((c) => applyCardChanges(c, metadata, undefined, undefined))
-      .filter(and(filters));
+    // Sealed deck takes priority - if sealed deck is set, only show cards from sealed deck
+    if (hasSealedDeck) {
+      const sealedFilter = filterSealed(sealed.cards, lookupTables);
+      filters.push(sealedFilter);
+    } else if (effectiveCardPool && effectiveCardPool.length > 0) {
+      // Only apply card pool filter if no sealed deck is set
+      const cardPoolFilter = filterCardPool(
+        effectiveCardPool,
+        metadata,
+        lookupTables,
+      );
+      if (cardPoolFilter) {
+        // Allow cards in the pool, signatures, and campaign cards (xp == null with restrictions)
+        filters.push(
+          or([
+            cardPoolFilter,
+            (c: Card) =>
+              !!c.restrictions?.investigator ||
+              (c.xp == null &&
+                !!c.restrictions &&
+                !c.duplicate_of_code &&
+                c.subtype_code !== "basicweakness"),
+          ]),
+        );
+      }
+    }
+
+    let filteredCards = Object.values(metadata.cards);
+
+    // Apply taboo changes to cards before filtering (similar to selectBaseListCards)
+    if (tabooSetId) {
+      filteredCards = filteredCards.map((c) =>
+        applyCardChanges(c, metadata, tabooSetId, undefined),
+      );
+    }
+
+    return filteredCards.filter(and(filters));
   },
 );
 
@@ -74,7 +218,24 @@ export const selectDraftCardPool = createSelector(
 export const selectAvailableDraftCards = createSelector(
   [
     selectMetadata,
-    selectDraftCardPool,
+    (
+      state: StoreState,
+      investigatorCode: string,
+      _pickedCards: Record<string, number>,
+      additionalDeckOptions: DeckOption[],
+    ) => {
+      const cardPool = state.draft?.cardPool;
+      const sealed = state.draft?.sealed;
+      const tabooSetId = state.draft?.tabooSetId;
+      return selectDraftCardPool(
+        state,
+        investigatorCode,
+        additionalDeckOptions,
+        cardPool,
+        sealed,
+        tabooSetId,
+      );
+    },
     (_: StoreState, investigatorCode: string) => investigatorCode,
     (
       _: StoreState,
@@ -352,7 +513,23 @@ export const selectSignatureCards = createSelector(
 export const selectDraftDebugInfo = createSelector(
   [
     selectMetadata,
-    selectDraftCardPool,
+    (
+      state: StoreState,
+      investigatorCode: string,
+      _pickedCards: Record<string, number>,
+    ) => {
+      const cardPool = state.draft?.cardPool;
+      const sealed = state.draft?.sealed;
+      const tabooSetId = state.draft?.tabooSetId;
+      return selectDraftCardPool(
+        state,
+        investigatorCode,
+        [],
+        cardPool,
+        sealed,
+        tabooSetId,
+      );
+    },
     (
       _: StoreState,
       investigatorCode: string,
@@ -569,7 +746,19 @@ export const selectCanStartDraft = createSelector(
     selectMetadata,
     selectLookupTables,
     selectLocaleSortingCollator,
-    selectDraftCardPool,
+    (state: StoreState, investigatorCode: string) => {
+      const cardPool = state.draft?.cardPool;
+      const sealed = state.draft?.sealed;
+      const tabooSetId = state.draft?.tabooSetId;
+      return selectDraftCardPool(
+        state,
+        investigatorCode,
+        [],
+        cardPool,
+        sealed,
+        tabooSetId,
+      );
+    },
     selectSignatureCards,
     (_: StoreState, investigatorCode: string) => investigatorCode,
   ],
