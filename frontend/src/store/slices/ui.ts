@@ -42,6 +42,17 @@ export const createUISlice: StateCreator<StoreState, [], [], UISlice> = (
       },
     }));
   },
+  cacheFanMadeProject(content) {
+    set((state) => ({
+      ui: {
+        ...state.ui,
+        fanMadeContentCache: mergeFanMadeContent(
+          state.ui.fanMadeContentCache,
+          content,
+        ),
+      },
+    }));
+  },
   pushHistory(path: string) {
     set((state) => {
       if (state.ui.navigationHistory.at(-1) === path) {

@@ -576,6 +576,7 @@ const selectBaseListCards = createSelector(
   (state: StoreState) => state.fanMadeData.projects,
   (state: StoreState) => selectActiveList(state)?.systemFilter,
   (state: StoreState) => selectActiveList(state)?.filterValues,
+  (state: StoreState) => selectActiveList(state)?.fanMadeCycleCodes,
   selectDeckInvestigatorFilter,
   selectCanonicalTabooSetId,
   selectDeckCustomizations,
@@ -587,6 +588,7 @@ const selectBaseListCards = createSelector(
     fanMadeProjects,
     systemFilter,
     filterValues,
+    fanMadeCycleCodes,
     deckInvestigatorFilter,
     tabooSetId,
     customizations,
@@ -621,7 +623,9 @@ const selectBaseListCards = createSelector(
       if (!pack?.cycle_code) return false;
 
       return Boolean(
-        fanMadeData?.cards?.[card.code] || fanMadeProjects?.[pack.cycle_code],
+        fanMadeData?.cards?.[card.code] ||
+          fanMadeProjects?.[pack.cycle_code] ||
+          fanMadeCycleCodes?.includes(pack.cycle_code),
       );
     });
 

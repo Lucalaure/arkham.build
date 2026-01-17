@@ -162,14 +162,18 @@ export type ListDisplay = {
 };
 
 export type List = {
+  // Unowned fan-made content (in cache) is filtered from lists by default.
+  // For fan-made content preview pages, we need to cache and "whitelist" the fan-made data
+  // for the displayed list, which is what this field can be used for.
+  fanMadeCycleCodes?: string[];
   display: ListDisplay;
-  initialState: Omit<List, "initialState">;
   displaySortSelection: string;
   filters: FilterKey[];
   filtersEnabled: boolean;
   filterValues: {
     [id: number]: FilterObject<FilterKey>;
   };
+  initialState: Omit<List, "initialState">;
   key: string;
   // Applied before any kind of other filtering is applied to card list.
   systemFilter?: Filter;
@@ -188,11 +192,13 @@ export type ListsSlice = {
     key: string,
     initialValues?: Partial<Record<FilterKey, FilterMapping[FilterKey]>>,
     opts?: {
-      showOwnershipFilter?: boolean;
-      showInvestigatorFilter?: boolean;
-      search?: string;
+      display?: Partial<ListDisplay>;
+      fanMadeCycleCodes?: string[];
       additionalFilters?: FilterKey[];
       lockedFilters?: Set<FilterKey>;
+      search?: string;
+      showInvestigatorFilter?: boolean;
+      showOwnershipFilter?: boolean;
     },
   ): void;
 

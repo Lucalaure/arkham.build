@@ -25,6 +25,7 @@ export type UISlice = UIState & {
   setShowUnusableCards(value: boolean): void;
   setShowLimitedAccess(value: boolean): void;
   cacheFanMadeContent(decks: Deck[]): undefined;
+  cacheFanMadeProject(content: Partial<DeckFanMadeContent>): void;
 
   pushHistory(path: string): void;
   pruneHistory(index: number): void;

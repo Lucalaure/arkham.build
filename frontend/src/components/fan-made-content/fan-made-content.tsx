@@ -16,40 +16,24 @@ import { z } from "zod";
 import type { SettingProps } from "@/pages/settings/types";
 import { useStore } from "@/store";
 import {
-  addProjectToMetadata,
-  cloneMetadata,
-} from "@/store/lib/fan-made-content";
-import { getGroupedCards } from "@/store/lib/grouping";
-import { makeSortFunction } from "@/store/lib/sorting";
-import type { Card } from "@/store/schemas/card.schema";
-import {
   type FanMadeProject,
   FanMadeProjectSchema,
 } from "@/store/schemas/fan-made-project.schema";
 import { selectOwnedFanMadeProjects } from "@/store/selectors/fan-made-content";
 import {
-  selectLocaleSortingCollator,
-  selectMetadata,
-} from "@/store/selectors/shared";
-import {
   type FanMadeProjectListing,
   queryFanMadeProjectData,
   queryFanMadeProjects,
 } from "@/store/services/queries";
-import type {
-  FanMadeContentFilter,
-  ListDisplay,
-} from "@/store/slices/lists.types";
-import type { Metadata } from "@/store/slices/metadata.types";
+import type { FanMadeContentFilter } from "@/store/slices/lists.types";
 import { assert } from "@/utils/assert";
 import { cx } from "@/utils/cx";
 import { capitalize, formatDate } from "@/utils/formatting";
 import { isEmpty } from "@/utils/is-empty";
 import { parseMarkdown } from "@/utils/markdown";
-import { CardGrid } from "../card-list/card-grid";
 import { ErrorDisplay, ErrorImage } from "../error-display/error-display";
 import { Button } from "../ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
+import { Dialog, DialogContent } from "../ui/dialog";
 import { Field, FieldLabel } from "../ui/field";
 import { FileInput } from "../ui/file-input";
 import { Loader } from "../ui/loader";
@@ -294,16 +278,16 @@ function Collection({ onAddProject, listingsQuery }: RegistryProps) {
                   onUpdate={onAddFromRegistry}
                 />
               )}
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button size="sm" data-testid="collection-project-view-cards">
-                    <EyeIcon /> {t("fan_made_content.actions.view_cards")}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <PreviewModal project={project} />
-                </DialogContent>
-              </Dialog>
+              <Button
+                as="a"
+                href={`/fan-made-content/preview/${meta.code}`}
+                size="sm"
+                data-testid="collection-project-view-cards"
+                rel="noreferrer"
+                target="_blank"
+              >
+                <EyeIcon /> {t("fan_made_content.actions.view_cards")}
+              </Button>
               <Button
                 data-testid="collection-project-uninstall"
                 size="sm"
@@ -362,6 +346,16 @@ function Registry({ onAddProject, listingsQuery }: RegistryProps) {
 
             return (
               <ProjectCard key={meta.code} project={listing}>
+                <Button
+                  as="a"
+                  href={`/fan-made-content/preview/${meta.code}`}
+                  size="sm"
+                  data-testid="collection-project-view-cards"
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <EyeIcon /> {t("fan_made_content.actions.view_cards")}
+                </Button>
                 {projectOwned ? (
                   <ProjectInstallStatus
                     installed={projectOwned}
@@ -520,80 +514,6 @@ function ProjectCard(props: {
         </p>
       )}
     </MediaCard>
-  );
-}
-
-function PreviewModal({ project }: { project: FanMadeProject }) {
-  const metadata = useStore(selectMetadata);
-  const sortingCollator = useStore(selectLocaleSortingCollator);
-
-  const projectMetadata = selectMetadataWithPack(metadata, project);
-
-  const projectCards = Object.values(project.data.cards)
-    .map((card) => projectMetadata.cards[card.code])
-    .filter((x) => !x.hidden);
-
-  const listDisplay = useMemo(
-    () =>
-      ({
-        grouping: ["pack", "encounter_set"],
-        sorting: ["position"],
-        viewMode: "scans",
-      }) as ListDisplay,
-    [],
-  );
-
-  const groupedCards = getGroupedCards(
-    listDisplay.grouping,
-    projectCards,
-    makeSortFunction(listDisplay.sorting, projectMetadata, sortingCollator),
-    projectMetadata,
-    sortingCollator,
-  );
-
-  const groups = [] as { key: string; type: string }[];
-  const groupCounts = [] as number[];
-  const cards = [] as Card[];
-
-  for (const group of groupedCards.data) {
-    cards.push(...group.cards);
-
-    groups.push({
-      key: group.key,
-      type: group.type,
-    });
-
-    groupCounts.push(group.cards.length);
-  }
-
-  return (
-    <Modal>
-      <ModalBackdrop />
-      <ModalInner className={css["modal-inner"]} size="90%">
-        <ModalActions className={css["modal-actions"]} />
-        <DefaultModalContent
-          className={css["modal-content"]}
-          mainClassName={css["modal-content-main"]}
-        >
-          <CardGrid
-            data={{
-              cards,
-              totalCardCount: cards.length,
-              key: project.meta.code,
-              groups,
-              groupCounts,
-            }}
-            listDisplay={{
-              grouping: ["encounter_set", "subtype", "type", "slot"],
-              sorting: ["position", "name", "level"],
-              viewMode: "scans",
-            }}
-            listMode="grouped"
-            metadata={metadata}
-          />
-        </DefaultModalContent>
-      </ModalInner>
-    </Modal>
   );
 }
 
@@ -771,10 +691,4 @@ function useProjectRegistry(onAddProject: (payload: unknown) => Promise<void>) {
     onAddFromUrl,
     onAddFromRegistry,
   };
-}
-
-function selectMetadataWithPack(metadata: Metadata, project: FanMadeProject) {
-  const meta = cloneMetadata(metadata);
-  addProjectToMetadata(meta, project);
-  return meta;
 }

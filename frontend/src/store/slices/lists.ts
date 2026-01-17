@@ -551,6 +551,8 @@ export const createListsSlice: StateCreator<StoreState, [], [], ListsSlice> = (
     key,
     initialValues,
     opts = {
+      display: undefined,
+      fanMadeCycleCodes: undefined,
       search: "",
       showOwnershipFilter: true,
       showInvestigatorFilter: true,
@@ -563,8 +565,14 @@ export const createListsSlice: StateCreator<StoreState, [], [], ListsSlice> = (
 
       const values = mergeInitialValues(initialValues ?? {}, state.settings);
 
+      const display = {
+        ...getDisplaySettings(values, state.settings),
+        ...opts.display,
+      };
+
       lists[key] = makeList({
-        display: getDisplaySettings(values, state.settings),
+        fanMadeCycleCodes: opts.fanMadeCycleCodes,
+        display,
         filters: cardsFilters({
           additionalFilters: opts.additionalFilters ?? ["illustrator"],
           showOwnershipFilter: opts.showOwnershipFilter,
@@ -841,16 +849,18 @@ function makeFilterValue(
 }
 
 type MakeListOptions = {
-  key: string;
-  filters: FilterKey[];
+  fanMadeCycleCodes?: string[];
   display: ListDisplay;
-  systemFilter?: Filter;
+  filters: FilterKey[];
   initialValues?: Partial<Record<FilterKey, unknown>>;
-  search?: Search;
+  key: string;
   lockedFilters?: Set<FilterKey>;
+  search?: Search;
+  systemFilter?: Filter;
 };
 
 function makeList({
+  fanMadeCycleCodes,
   key,
   filters,
   display,
@@ -860,6 +870,7 @@ function makeList({
   lockedFilters = new Set<FilterKey>(),
 }: MakeListOptions): List {
   const list = {
+    fanMadeCycleCodes,
     filters,
     filterValues: filters.reduce<List["filterValues"]>((acc, curr, i) => {
       const locked = lockedFilters.has(curr);
