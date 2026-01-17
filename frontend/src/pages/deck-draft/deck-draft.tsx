@@ -194,7 +194,10 @@ function DeckDraftInner() {
                 })()
               : {},
           currentOptions: [],
-          remainingXp: state.draft.mode === "upgrade" ? state.draft.totalXp : 0,
+          remainingXp:
+            state.draft.mode === "upgrade"
+              ? state.draft.totalXp + (state.draft.previousRemainingXp ?? 0)
+              : 0,
         },
       };
     });
