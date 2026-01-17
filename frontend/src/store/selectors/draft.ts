@@ -100,6 +100,15 @@ export const selectDraftCardPool = createSelector(
       _sealed: SealedDeck | undefined,
       tabooSetId: number | undefined,
     ) => tabooSetId,
+    (
+      _: StoreState,
+      _investigatorCode: string,
+      _additionalDeckOptions: DeckOption[],
+      _cardPool: string[] | undefined | null,
+      _sealed: SealedDeck | undefined,
+      _tabooSetId: number | undefined,
+      remainingXp: number | undefined,
+    ) => remainingXp,
   ],
   (
     metadata,
@@ -112,6 +121,7 @@ export const selectDraftCardPool = createSelector(
     cardPool: string[] | undefined | null,
     sealed: SealedDeck | undefined,
     tabooSetId: number | undefined,
+    remainingXp: number | undefined,
   ) => {
     const investigator = metadata.cards[investigatorCode];
     if (!investigator) return [];
@@ -123,10 +133,18 @@ export const selectDraftCardPool = createSelector(
 
     const filters = [
       filterDuplicates,
-      // Only include level 0 cards for draft (accounting for taboo_xp)
-      // After taboo is applied, cards with taboo_xp should be filtered out if their effective level > 0
+      // Filter by card level based on mode
+      // For upgrade mode: show cards with XP 1 to remainingXp
+      // For new draft mode: show only level 0 cards
       (c: Card) => {
         const level = realCardLevel(c);
+        if (remainingXp !== undefined && remainingXp > 0) {
+          // Upgrade mode: show cards with XP between 1 and remainingXp
+          if (level === null || level === undefined || level === 0)
+            return false;
+          return level <= remainingXp;
+        }
+        // New draft mode: only level 0 cards
         return level === 0 || level === null;
       },
       cardAccessFilter,
@@ -227,6 +245,8 @@ export const selectAvailableDraftCards = createSelector(
       const cardPool = state.draft?.cardPool;
       const sealed = state.draft?.sealed;
       const tabooSetId = state.draft?.tabooSetId;
+      const remainingXp =
+        state.draft?.mode === "upgrade" ? state.draft.remainingXp : undefined;
       return selectDraftCardPool(
         state,
         investigatorCode,
@@ -234,6 +254,7 @@ export const selectAvailableDraftCards = createSelector(
         cardPool,
         sealed,
         tabooSetId,
+        remainingXp,
       );
     },
     (_: StoreState, investigatorCode: string) => investigatorCode,
@@ -528,6 +549,7 @@ export const selectDraftDebugInfo = createSelector(
         cardPool,
         sealed,
         tabooSetId,
+        undefined,
       );
     },
     (
@@ -757,6 +779,7 @@ export const selectCanStartDraft = createSelector(
         cardPool,
         sealed,
         tabooSetId,
+        undefined,
       );
     },
     selectSignatureCards,

@@ -754,6 +754,7 @@
         "xp_required_help": "Amount of XP required to build this deck from scratch."
       },
       "tags": {
+        "draft": "Draft",
         "limited_pool": "Limited pool",
         "private": "Private",
         "sealed": "Sealed",
@@ -908,6 +909,7 @@
           "title": "Limited card pool"
         },
         "name": "Deck name",
+        "draft_deck": "Draft deck",
         "sealed": {
           "add": "Add sealed deck",
           "help": "Upload a sealed deck definition (.csv) to use it. Use <a>ArkhamSealed</a> to generate a sealed deck.",
@@ -1080,10 +1082,12 @@
       "tab_tools": "Tools",
       "upgrade_modal": {
         "automatic_xp_gain": "+{{count}} XP will be automatically added to this upgrade.",
+        "cards_per_pick": "Cards per pick",
         "error": "Failed to upgrade deck: {{error}}",
         "great_work_label": "I was usurped by the homunculus",
         "great_work_status_usurped": "The Great Work will be removed from your deck alongside each of your signature cards. Your investigator will be replaced with the homunculus.",
         "loading": "Upgrading deck",
+        "remaining_xp": "{{count}} XP remaining from previous upgrade",
         "title": "Upgrade deck with XP",
         "xp_gained": "XP gained"
       }

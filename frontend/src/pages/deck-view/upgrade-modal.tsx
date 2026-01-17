@@ -86,6 +86,8 @@ export function UpgradeModal(props: Props) {
   const [xp, setXp] = useState(
     new URLSearchParams(search).get("upgrade_xp")?.toString() ?? "",
   );
+  const [cardsPerPick, setCardsPerPick] = useState<"3" | "5" | "10">("5");
+  const isDraftDeck = deck.metaParsed?.is_draft === true;
 
   useEffect(() => {
     const url = new URL(window.location.toString());
@@ -112,15 +114,48 @@ export function UpgradeModal(props: Props) {
   }, [modalContext]);
 
   const onUpgrade = useCallback(
-    async (path = "edit") => {
+    async (path = "edit", useDraftFlow = true) => {
+      const enteredXp = xp ? +xp : 0;
+      const remainingXp =
+        (deck.xp ?? 0) + (deck.xp_adjustment ?? 0) - (deck.xp_spent ?? 0);
+
+      // For draft decks, navigate to draft upgrade flow (unless useDraftFlow is false)
+      if (isDraftDeck && useDraftFlow) {
+        // Calculate NEW XP (entered + bonuses) - this is what will be spent
+        let newXp = enteredXp;
+        if (hasCharonsObol) newXp += 2;
+        if (hasGreatWork && !usurped) newXp += 1;
+
+        // Total available XP for card pool filtering (remaining + new)
+        const totalAvailableXp = remainingXp + newXp;
+
+        onCloseModal();
+        const params = new URLSearchParams({
+          upgrade_deck: deck.id.toString(),
+          xp: newXp.toString(), // Only pass NEW XP
+          previous_remaining_xp: remainingXp.toString(), // Pass remaining XP separately
+          total_available_xp: totalAvailableXp.toString(), // Total for card pool filtering
+          cards_per_pick: cardsPerPick,
+        });
+        if (exileString) {
+          params.set("exile", exileString);
+        }
+        navigate(
+          `/deck/draft/${deck.investigatorFront.card.code}?${params.toString()}`,
+        );
+        return;
+      }
+
+      // Normal upgrade flow: only use entered XP + bonuses
+      // Remaining XP will be handled automatically by upgradeDeck via xpCarryover
+      let upgradeXp = enteredXp;
+      if (hasCharonsObol) upgradeXp += 2;
+      if (hasGreatWork && !usurped) upgradeXp += 1;
+
       const toastId = toast.show({
         children: t("deck_view.upgrade_modal.loading"),
         variant: "loading",
       });
-
-      let upgradeXp = xp ? +xp : 0;
-      if (hasCharonsObol) upgradeXp += 2;
-      if (hasGreatWork && !usurped) upgradeXp += 1;
 
       try {
         const newDeck = await upgradeDeck({
@@ -146,6 +181,10 @@ export function UpgradeModal(props: Props) {
     },
     [
       deck.id,
+      deck.xp,
+      deck.xp_adjustment,
+      deck.xp_spent,
+      deck.investigatorFront.card.code,
       upgradeDeck,
       xp,
       onCloseModal,
@@ -155,6 +194,8 @@ export function UpgradeModal(props: Props) {
       usurped,
       hasGreatWork,
       hasCharonsObol,
+      isDraftDeck,
+      cardsPerPick,
       t,
     ],
   );
@@ -187,14 +228,21 @@ export function UpgradeModal(props: Props) {
 
   const cssVariables = useAccentColor(deck.cards.investigator.card);
 
-  const disabled = xp === "" || !!connectionLock;
+  // Calculate remaining XP from previous upgrades
+  const remainingXp =
+    (deck.xp ?? 0) + (deck.xp_adjustment ?? 0) - (deck.xp_spent ?? 0);
+  const enteredXp = xp ? Number.parseInt(xp, 10) : 0;
+  const totalAvailableXp = remainingXp + enteredXp;
+
+  const disabled =
+    (xp === "" && remainingXp <= 0) || totalAvailableXp < 1 || !!connectionLock;
 
   const onSave = useCallback(() => {
-    onUpgrade("edit");
+    onUpgrade("edit", true);
   }, [onUpgrade]);
 
   const onSaveClose = useCallback(() => {
-    onUpgrade("view");
+    onUpgrade("view", false);
   }, [onUpgrade]);
 
   useHotkey("cmd+enter", onSave, { disabled, allowInputFocused: true });
@@ -274,7 +322,39 @@ export function UpgradeModal(props: Props) {
                 name="xp-gained"
                 value={xp}
               />
+              {remainingXp > 0 && (
+                <p>
+                  <small>
+                    <em>
+                      {t("deck_view.upgrade_modal.remaining_xp", {
+                        count: remainingXp,
+                      })}
+                    </em>
+                  </small>
+                </p>
+              )}
             </Field>
+            {isDraftDeck && (
+              <Field full padded>
+                <FieldLabel htmlFor="cards-per-pick">
+                  {t("deck_view.upgrade_modal.cards_per_pick")}
+                </FieldLabel>
+                <select
+                  id="cards-per-pick"
+                  value={cardsPerPick}
+                  onChange={(evt) => {
+                    const value = evt.target.value;
+                    if (value === "3" || value === "5" || value === "10") {
+                      setCardsPerPick(value);
+                    }
+                  }}
+                >
+                  <option value="3">3</option>
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                </select>
+              </Field>
+            )}
             {hasGreatWork && (
               <Field
                 bordered

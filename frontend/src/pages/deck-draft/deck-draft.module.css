@@ -81,6 +81,19 @@
   align-items: center;
 }
 
+.picker-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.xp-counter {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--palette-7);
+  opacity: 0.8;
+}
+
 .picker-progress {
   font-size: var(--text-lg);
   font-weight: 600;

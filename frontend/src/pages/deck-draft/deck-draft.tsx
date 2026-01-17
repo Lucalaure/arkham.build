@@ -45,11 +45,49 @@ function DeckDraft() {
 
   const draft = useStore((state) => state.draft);
   const initDraft = useStore((state) => state.initDraft);
+  const initUpgradeDraft = useStore((state) => state.initUpgradeDraft);
   const resetDraft = useStore((state) => state.resetDraft);
 
   // Initialize draft on mount
   useEffect(() => {
     const params = new URLSearchParams(search);
+    const upgradeDeckId = params.get("upgrade_deck");
+    const upgradeXp = params.get("xp");
+    const previousRemainingXp = params.get("previous_remaining_xp");
+    const totalAvailableXp = params.get("total_available_xp");
+    const cardsPerPick = params.get("cards_per_pick");
+
+    // Check if this is an upgrade draft
+    if (upgradeDeckId && upgradeXp !== null) {
+      const newXp = Number.parseInt(upgradeXp, 10);
+      const prevRemaining = previousRemainingXp
+        ? Number.parseInt(previousRemainingXp, 10)
+        : 0;
+      const totalAvailable = totalAvailableXp
+        ? Number.parseInt(totalAvailableXp, 10)
+        : undefined;
+      const cardsPerPickValue = Number.parseInt(cardsPerPick || "5", 10);
+      // Allow upgrade draft even with 0 new XP if there's remaining XP or total available XP
+      if (
+        !Number.isNaN(newXp) &&
+        (newXp > 0 ||
+          prevRemaining > 0 ||
+          (totalAvailable && totalAvailable > 0))
+      ) {
+        initUpgradeDraft(
+          upgradeDeckId,
+          newXp,
+          cardsPerPickValue,
+          prevRemaining,
+          totalAvailable,
+        );
+        return () => {
+          resetDraft();
+        };
+      }
+    }
+
+    // Normal draft initialization
     const initialInvestigatorChoice = params
       .get("initial_investigator")
       ?.toString();
@@ -59,7 +97,7 @@ function DeckDraft() {
     return () => {
       resetDraft();
     };
-  }, [code, search, initDraft, resetDraft]);
+  }, [code, search, initDraft, initUpgradeDraft, resetDraft]);
 
   return draft ? (
     <CardModalProvider>
@@ -77,9 +115,11 @@ function DeckDraftInner() {
   const draft = useStore(selectDraftChecked);
   const startDraft = useStore((state) => state.startDraft);
   const pickDraftCard = useStore((state) => state.pickDraftCard);
+  const generateDraftOptions = useStore((state) => state.generateDraftOptions);
   const resetDraft = useStore((state) => state.resetDraft);
   const createShare = useStore((state) => state.createShare);
   const setRemoting = useStore((state) => state.setRemoting);
+  const upgradeDeck = useStore((state) => state.upgradeDeck);
 
   const { investigator, back } = useStore(selectDraftInvestigators);
 
@@ -111,8 +151,71 @@ function DeckDraftInner() {
   );
 
   const handleRestart = useCallback(() => {
-    resetDraft();
-  }, [resetDraft]);
+    // Save current settings before resetting
+    const currentDraft = draft;
+    if (!currentDraft) return;
+
+    const savedSettings = {
+      provider: currentDraft.provider,
+      title: currentDraft.title,
+      tabooSetId: currentDraft.tabooSetId,
+      cardPool: currentDraft.cardPool,
+      sealed: currentDraft.sealed,
+      selections: currentDraft.selections,
+      cardsPerPick: currentDraft.cardsPerPick,
+      investigatorFrontCode: currentDraft.investigatorFrontCode,
+      investigatorBackCode: currentDraft.investigatorBackCode,
+    };
+
+    // Reset only the picking progress, preserving settings
+    useStore.setState((state) => {
+      if (!state.draft) return state;
+      return {
+        draft: {
+          ...state.draft,
+          phase: state.draft.mode === "upgrade" ? "picking" : "setup",
+          pickedCards:
+            state.draft.mode === "upgrade"
+              ? (() => {
+                  // For upgrade mode, restore original deck cards (excluding signatures)
+                  const originalDeck =
+                    state.data.decks[state.draft.upgradeDeckId || ""];
+                  if (!originalDeck) return {};
+                  const signatureCards = state.draft.signatureCards;
+                  const originalPickedCards: Record<string, number> = {};
+                  for (const [code, quantity] of Object.entries(
+                    originalDeck.slots,
+                  )) {
+                    if (!signatureCards[code]) {
+                      originalPickedCards[code] = quantity;
+                    }
+                  }
+                  return originalPickedCards;
+                })()
+              : {},
+          currentOptions: [],
+          remainingXp: state.draft.mode === "upgrade" ? state.draft.totalXp : 0,
+        },
+      };
+    });
+
+    // Restore settings
+    const state = useStore.getState();
+    if (state.draft) {
+      useStore.setState({
+        draft: {
+          ...state.draft,
+          ...savedSettings,
+        },
+      });
+
+      // If in upgrade mode, regenerate options immediately
+      // If in normal mode, user needs to click "Start" again
+      if (state.draft.mode === "upgrade") {
+        generateDraftOptions();
+      }
+    }
+  }, [draft, generateDraftOptions]);
 
   const handleSave = useCallback(async () => {
     if (!draft || !investigator) return;
@@ -128,6 +231,94 @@ function DeckDraftInner() {
       const lookupTables = selectLookupTables(state);
       const collator = selectLocaleSortingCollator(state);
 
+      // Handle upgrade mode
+      if (draft.mode === "upgrade" && draft.upgradeDeckId) {
+        const originalDeck = state.data.decks[draft.upgradeDeckId];
+        if (!originalDeck) {
+          throw new Error("Original deck not found");
+        }
+
+        // Merge picked cards with original deck slots
+        // pickedCards already contains original deck cards (from initUpgradeDraft)
+        // plus any new upgrade cards picked during the draft
+        // We also need to include signature cards
+        const mergedSlots: Record<string, number> = {
+          ...draft.signatureCards,
+          ...draft.pickedCards,
+        };
+
+        // Calculate XP spent from NEW XP only
+        // remainingXp includes both previous remaining and new XP
+        // newXpRemaining = remainingXp - previousRemainingXp (but can't be negative)
+        const previousRemaining = draft.previousRemainingXp ?? 0;
+        const newXpRemaining = Math.max(
+          0,
+          draft.remainingXp - previousRemaining,
+        );
+        const newXpSpent = draft.totalXp - newXpRemaining;
+
+        // Temporarily update the deck's slots with merged slots
+        const originalSlots = originalDeck.slots;
+        useStore.setState({
+          data: {
+            ...state.data,
+            decks: {
+              ...state.data.decks,
+              [draft.upgradeDeckId]: {
+                ...originalDeck,
+                slots: mergedSlots,
+              },
+            },
+          },
+        });
+
+        try {
+          // Call upgradeDeck which will create a new deck with the merged slots
+          // Only pass NEW XP spent - upgradeDeck will handle remaining XP automatically
+          const newDeck = await upgradeDeck({
+            id: draft.upgradeDeckId,
+            xp: newXpSpent,
+            exileString: draft.exileString ?? "",
+            usurped: undefined,
+          });
+
+          // Restore original deck slots
+          useStore.setState({
+            data: {
+              ...useStore.getState().data,
+              decks: {
+                ...useStore.getState().data.decks,
+                [draft.upgradeDeckId]: {
+                  ...originalDeck,
+                  slots: originalSlots,
+                },
+              },
+            },
+          });
+
+          toast.dismiss(toastId);
+          resetDraft();
+          navigate(`/deck/edit/${newDeck.id}`, { replace: true });
+          return;
+        } catch (err) {
+          // Restore original deck slots on error
+          useStore.setState({
+            data: {
+              ...useStore.getState().data,
+              decks: {
+                ...useStore.getState().data.decks,
+                [draft.upgradeDeckId]: {
+                  ...originalDeck,
+                  slots: originalSlots,
+                },
+              },
+            },
+          });
+          throw err;
+        }
+      }
+
+      // Original logic for new draft mode
       // Combine signature cards and picked cards
       const slots: Record<string, number> = {
         ...draft.signatureCards,
@@ -136,7 +327,7 @@ function DeckDraftInner() {
 
       // Create deck meta with parallel front/back selections, card pool, sealed deck, and selections
       // investigatorCode is the base investigator code from the URL
-      const meta: Record<string, string | null> = {};
+      const meta: Record<string, string | null | boolean> = {};
 
       // Only set alternate_front if it's different from the base investigator
       if (draft.investigatorFrontCode !== draft.investigatorCode) {
@@ -164,6 +355,9 @@ function DeckDraftInner() {
           meta[key as keyof typeof meta] = value;
         }
       }
+
+      // Mark this deck as created via draft
+      meta.is_draft = true;
 
       // Create the deck
       // Use base investigator code, with parallel selections stored in meta
@@ -259,6 +453,7 @@ function DeckDraftInner() {
     navigate,
     createShare,
     setRemoting,
+    upgradeDeck,
   ]);
 
   const phase = draft.phase;

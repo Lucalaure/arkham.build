@@ -18,7 +18,8 @@ export function DraftPicker(props: Props) {
   const { t } = useTranslation();
 
   const metadata = useStore(selectMetadata);
-  const tabooSetId = useStore((state) => state.draft?.tabooSetId);
+  const draft = useStore((state) => state.draft);
+  const tabooSetId = draft?.tabooSetId;
 
   const cards = options
     .map((code) => metadata.cards[code])
@@ -37,10 +38,30 @@ export function DraftPicker(props: Props) {
       return tabooCard;
     });
 
+  // Calculate XP spent for upgrade mode
+  // Calculate XP spent: total available XP - remaining XP
+  // For display, show total XP spent (including previous remaining if any)
+  const xpSpent =
+    draft?.mode === "upgrade" && draft
+      ? draft.totalXp + (draft.previousRemainingXp ?? 0) - draft.remainingXp
+      : undefined;
+  const totalXp =
+    draft?.mode === "upgrade"
+      ? draft.totalXp + (draft.previousRemainingXp ?? 0)
+      : undefined;
+
   return (
     <div className={css["picker-container"]}>
       <div className={css["picker-header"]}>
-        <h2>{t("deck_draft.picking.pick_card")}</h2>
+        <h2>
+          {t("deck_draft.picking.pick_card")}
+          {xpSpent !== undefined && totalXp !== undefined && xpSpent > 0 && (
+            <span className={css["xp-counter"]}>
+              {" "}
+              ({xpSpent}/{totalXp} XP)
+            </span>
+          )}
+        </h2>
       </div>
 
       <ul className={css["picker-options"]}>

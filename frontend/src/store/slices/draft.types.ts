@@ -21,6 +21,12 @@ export type DraftState = {
   };
   cardPool?: string[] | null; // undefined = use default environment, null = explicitly cleared (no filter), array = manually selected packs
   sealed?: SealedDeck;
+  mode: "new" | "upgrade";
+  upgradeDeckId?: string;
+  remainingXp: number;
+  totalXp: number;
+  previousRemainingXp?: number; // Remaining XP from the deck being upgraded (for card pool filtering)
+  exileString?: string;
 };
 
 export type DraftSlice = {
@@ -29,6 +35,13 @@ export type DraftSlice = {
   initDraft: (
     investigatorCode: string,
     initialInvestigatorChoice?: string,
+  ) => void;
+  initUpgradeDraft: (
+    deckId: string,
+    newXp: number,
+    cardsPerPick: number,
+    previousRemainingXp?: number,
+    totalAvailableXp?: number,
   ) => void;
   draftSetTitle: (value: string) => void;
   draftSetTabooSet: (value: number | undefined) => void;
