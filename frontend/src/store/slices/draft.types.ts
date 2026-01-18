@@ -3,6 +3,20 @@ import type { SealedDeck } from "../lib/types";
 
 export type DraftPhase = "setup" | "picking" | "complete";
 
+export type CustomizationUpgradeOption = {
+  type: "customization";
+  cardCode: string; // The customizable card's code
+  optionIndex: number; // Which customization row (0-indexed)
+  xpCost: number; // XP cost for this row
+};
+
+export type RegularCardOption = {
+  type: "card";
+  code: string;
+};
+
+export type DraftOption = RegularCardOption | CustomizationUpgradeOption;
+
 export type DraftState = {
   phase: DraftPhase;
   investigatorCode: string;
@@ -11,7 +25,7 @@ export type DraftState = {
   cardsPerPick: number;
   pickedCards: Record<string, number>;
   signatureCards: Record<string, number>;
-  currentOptions: string[];
+  currentOptions: DraftOption[];
   targetDeckSize: number;
   tabooSetId: number | undefined;
   provider: StorageProvider;
@@ -27,6 +41,7 @@ export type DraftState = {
   totalXp: number;
   previousRemainingXp?: number; // Remaining XP from the deck being upgraded (for card pool filtering)
   exileString?: string;
+  customizationUpgrades?: Record<string, Record<number, number>>; // cardCode -> optionIndex -> xp_spent
 };
 
 export type DraftSlice = {
@@ -53,6 +68,7 @@ export type DraftSlice = {
   draftSetCardsPerPick: (value: number) => void;
   generateDraftOptions: () => void;
   pickDraftCard: (code: string) => void;
+  pickDraftCustomization: (cardCode: string, optionIndex: number) => void;
   resetDraft: () => void;
   startDraft: () => void;
 };

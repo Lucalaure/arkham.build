@@ -818,3 +818,74 @@ export const selectCanStartDraft = createSelector(
     };
   },
 );
+
+/**
+ * Select all customizable cards that can be legally added to the investigator's deck.
+ * This includes cards not yet in the deck or cards that haven't reached their deck limit.
+ * Used for generating random customization upgrade options in draft mode.
+ */
+export const selectLegalCustomizableCards = createSelector(
+  [
+    selectMetadata,
+    selectLookupTables,
+    (
+      state: StoreState,
+      investigatorCode: string,
+      _pickedCards: Record<string, number>,
+      additionalDeckOptions: DeckOption[],
+    ) => {
+      const cardPool = state.draft?.cardPool;
+      const sealed = state.draft?.sealed;
+      const tabooSetId = state.draft?.tabooSetId;
+
+      // Get all legal customizable cards (level 0) regardless of XP
+      // XP filtering happens in getRandomLegalCustomizationUpgrade when generating options
+      return selectDraftCardPool(
+        state,
+        investigatorCode,
+        additionalDeckOptions,
+        cardPool,
+        sealed,
+        tabooSetId,
+        undefined, // Get level 0 cards - customizable cards start at level 0
+      );
+    },
+    (_: StoreState, investigatorCode: string) => investigatorCode,
+    (
+      _: StoreState,
+      _investigatorCode: string,
+      pickedCards: Record<string, number>,
+    ) => pickedCards,
+    (
+      _: StoreState,
+      _investigatorCode: string,
+      _pickedCards: Record<string, number>,
+      additionalDeckOptions: DeckOption[],
+    ) => additionalDeckOptions,
+  ],
+  (
+    metadata,
+    _lookupTables,
+    cardPool,
+    investigatorCode,
+    pickedCards,
+    _additionalDeckOptions,
+  ) => {
+    const investigator = metadata.cards[investigatorCode];
+    if (!investigator) return [];
+
+    // Get the back card where deck_options are defined
+    const backCardCode = investigator.back_link_id ?? investigatorCode;
+    const backCard = metadata.cards[backCardCode];
+    if (!backCard || !backCard.deck_options) return [];
+
+    // Filter for customizable cards only
+    // Note: We don't check deck limits here - customizable cards can always appear
+    // as upgrade options regardless of how many copies are in the deck.
+    // Deck limit checking happens in pickDraftCustomization when adding the card.
+    return cardPool.filter(
+      (card) =>
+        card.customization_options && card.customization_options.length > 0,
+    );
+  },
+);

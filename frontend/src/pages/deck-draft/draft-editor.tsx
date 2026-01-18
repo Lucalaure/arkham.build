@@ -6,116 +6,32 @@ import { Scroller } from "@/components/ui/scroller";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InvestigatorListcard } from "@/pages/deck-edit/editor/investigator-listcard";
 import { useStore } from "@/store";
-import { createDeck } from "@/store/lib/deck-factory";
 import type { DeckGrouping } from "@/store/lib/deck-grouping";
-import { resolveDeck } from "@/store/lib/resolve-deck";
 import type { ResolvedDeck } from "@/store/lib/types";
 import { selectDeckGroups } from "@/store/selectors/decks";
-import {
-  selectLocaleSortingCollator,
-  selectLookupTables,
-  selectMetadata,
-} from "@/store/selectors/shared";
+import { selectMetadata } from "@/store/selectors/shared";
 import { getCardColor } from "@/utils/card-utils";
 import { cx } from "@/utils/cx";
 import { useAccentColor } from "@/utils/use-accent-color";
 import css from "./draft-editor.module.css";
 
 type Props = {
-  investigatorCode: string;
-  investigatorFrontCode: string;
-  investigatorBackCode: string;
+  resolvedDeck: ResolvedDeck;
   pickedCards: Record<string, number>;
   signatureCards: Record<string, number>;
   currentCount: number;
   targetCount: number;
-  investigatorName: string;
   title: string;
-  tabooSetId: number | null;
 };
 
 export function DraftEditor(props: Props) {
-  const {
-    investigatorCode,
-    investigatorFrontCode,
-    investigatorBackCode,
-    pickedCards,
-    signatureCards,
-    investigatorName,
-    title,
-    tabooSetId,
-  } = props;
+  const { resolvedDeck, pickedCards, signatureCards, title } = props;
   const { t } = useTranslation();
 
   const metadata = useStore(selectMetadata);
-  const lookupTables = useStore(selectLookupTables);
-  const collator = useStore(selectLocaleSortingCollator);
   const settings = useStore((state) => state.settings);
 
-  // Use front code for display (the card shown)
-  const investigator = metadata.cards[investigatorFrontCode];
-
-  // Create a temporary deck structure to use with existing components
-  const draftDeck = useMemo(() => {
-    if (!investigator) return null;
-
-    // Combine signature cards and picked cards
-    const slots: Record<string, number> = {
-      ...signatureCards,
-      ...pickedCards,
-    };
-
-    // Create a minimal deck
-    // investigatorCode is the base investigator code from the URL
-    // Store parallel front/back selections in deck meta so resolveDeck can resolve them correctly
-    const meta: Record<string, string | null> = {};
-
-    // Only set alternate_front if it's different from the base investigator
-    if (investigatorFrontCode !== investigatorCode) {
-      meta.alternate_front = investigatorFrontCode;
-    }
-
-    // Only set alternate_back if it's different from the base investigator
-    if (investigatorBackCode !== investigatorCode) {
-      meta.alternate_back = investigatorBackCode;
-    }
-
-    const deck = createDeck({
-      investigator_code: investigatorCode,
-      investigator_name: investigatorName,
-      name: title,
-      slots,
-      meta: JSON.stringify(meta),
-      taboo_id: tabooSetId ?? null,
-      problem: null,
-    });
-
-    // Resolve the deck to get ResolvedDeck structure
-    try {
-      return resolveDeck(
-        { metadata, lookupTables, sharing: { decks: {} } },
-        collator,
-        deck,
-      );
-    } catch {
-      return null;
-    }
-  }, [
-    investigator,
-    investigatorCode,
-    investigatorFrontCode,
-    investigatorBackCode,
-    investigatorName,
-    title,
-    pickedCards,
-    signatureCards,
-    tabooSetId,
-    metadata,
-    lookupTables,
-    collator,
-  ]);
-
-  // Calculate deck stats manually for draft (before early return)
+  // Calculate deck stats manually for draft
   const deckStats = useMemo(() => {
     let deckSize = 0;
     let deckSizeTotal = 0;
@@ -151,38 +67,30 @@ export function DraftEditor(props: Props) {
   }, [pickedCards, signatureCards, metadata]);
 
   // Create a modified ResolvedDeck with draft stats
-  const draftDeckWithStats = useMemo((): ResolvedDeck | null => {
-    if (!draftDeck) return null;
+  const draftDeckWithStats = useMemo((): ResolvedDeck => {
     return {
-      ...draftDeck,
+      ...resolvedDeck,
       stats: {
-        ...draftDeck.stats,
+        ...resolvedDeck.stats,
         deckSize: deckStats.deckSize,
         deckSizeTotal: deckStats.deckSizeTotal,
         xpRequired: 0,
       },
     };
-  }, [draftDeck, deckStats]);
+  }, [resolvedDeck, deckStats]);
 
-  // Calculate accent colors (hooks must be called unconditionally)
-  // Use investigator card for accent color if draftDeckWithStats is not ready
-  const cardForAccent =
-    draftDeckWithStats?.investigatorBack.card ?? investigator;
+  // Calculate accent colors
+  const cardForAccent = draftDeckWithStats.investigatorBack.card;
   const cssVariables = useAccentColor(cardForAccent);
-  const backgroundCls = draftDeckWithStats
-    ? getCardColor(draftDeckWithStats.investigatorBack.card, "background")
-    : getCardColor(investigator, "background");
-
-  // Get deck groups for display (must be called before early return)
-  const groups = useStore((state) =>
-    draftDeckWithStats
-      ? selectDeckGroups(state, draftDeckWithStats, settings.lists.deck)
-      : null,
+  const backgroundCls = getCardColor(
+    draftDeckWithStats.investigatorBack.card,
+    "background",
   );
 
-  if (!investigator || !draftDeckWithStats) {
-    return null;
-  }
+  // Get deck groups for display
+  const groups = useStore((state) =>
+    selectDeckGroups(state, draftDeckWithStats, settings.lists.deck),
+  );
 
   return (
     <div className={css["editor"]} style={cssVariables} data-testid="editor">

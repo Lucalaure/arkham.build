@@ -1,6 +1,7 @@
 import type { StateCreator } from "zustand";
 import { assert } from "@/utils/assert";
 import {
+  cardLimit,
   countExperience,
   displayAttribute,
   isSpecialCard,
@@ -9,11 +10,13 @@ import { currentEnvironmentPacks } from "@/utils/environments";
 import { range } from "@/utils/range";
 import { shuffle } from "@/utils/shuffle";
 import { applyCardChanges } from "../lib/card-edits";
+import { filterInvestigatorAccess } from "../lib/filtering";
 import { resolveDeck } from "../lib/resolve-deck";
-import type { DeckOption } from "../schemas/card.schema";
+import type { Card, DeckOption } from "../schemas/card.schema";
 import { selectConnectionsData } from "../selectors/connections";
 import {
   selectAvailableDraftCards,
+  selectLegalCustomizableCards,
   selectSignatureCards,
 } from "../selectors/draft";
 import {
@@ -22,8 +25,110 @@ import {
   selectMetadata,
   selectSettingsTabooId,
 } from "../selectors/shared";
+import type { Metadata } from "../slices/metadata.types";
 import type { StoreState } from ".";
-import type { DraftSlice } from "./draft.types";
+import type {
+  CustomizationUpgradeOption,
+  DraftOption,
+  DraftSlice,
+  RegularCardOption,
+} from "./draft.types";
+
+/**
+ * Get a random legal customization upgrade for a card.
+ * Checks each unfilled customization option to see if it would result in a card
+ * level that the investigator can legally include in their deck.
+ *
+ * @returns An object with optionIndex and xpCost, or undefined if no valid options exist
+ */
+function getRandomLegalCustomizationUpgrade(
+  card: Card,
+  currentCustomizations: Record<number, number> | undefined,
+  remainingXp: number,
+  investigator: Card,
+  _metadata: Metadata,
+): { optionIndex: number; xpCost: number } | undefined {
+  if (!card.customization_options || card.customization_options.length === 0) {
+    return undefined;
+  }
+
+  // Calculate current total XP spent on this card
+  let currentTotalXp = 0;
+  if (currentCustomizations) {
+    for (const xpSpent of Object.values(currentCustomizations)) {
+      currentTotalXp += xpSpent;
+    }
+  }
+
+  // Get investigator access filter with actual level checking for customizable cards
+  const accessFilter = filterInvestigatorAccess(investigator, {
+    customizable: {
+      level: "actual",
+      properties: "all",
+    },
+  });
+
+  if (!accessFilter) {
+    return undefined;
+  }
+
+  // Collect all valid upgrade options
+  const validOptions: { optionIndex: number; xpCost: number }[] = [];
+
+  for (
+    let optionIndex = 0;
+    optionIndex < card.customization_options.length;
+    optionIndex++
+  ) {
+    const option = card.customization_options[optionIndex];
+
+    // Skip options with no XP cost
+    if (!option.xp || option.xp === 0) {
+      continue;
+    }
+
+    // Check if already fully upgraded
+    const currentXpSpent = currentCustomizations?.[optionIndex] ?? 0;
+    if (currentXpSpent >= option.xp) {
+      continue;
+    }
+
+    // Check if we have enough remaining XP
+    if (option.xp > remainingXp) {
+      continue;
+    }
+
+    // Calculate what the total XP would be after applying this option
+    const newTotalXp = currentTotalXp + option.xp;
+
+    // Calculate resulting card level using Math.ceil (rounds up)
+    // Level = half of total checkboxes marked, rounded up
+    // Note: We don't need to use this value directly, but calculating it helps
+    // understand what level the card will be. The filterInvestigatorAccess
+    // will check the level via customization_xp on the temporary card.
+    // const newLevel = Math.ceil(newTotalXp / 2);
+
+    // Create a temporary card with the new customization_xp to test access
+    const tempCard: Card = {
+      ...card,
+      customization_xp: newTotalXp,
+    };
+
+    // Check if the card with this level would still be legal for the investigator
+    if (accessFilter(tempCard)) {
+      validOptions.push({ optionIndex, xpCost: option.xp });
+    }
+  }
+
+  // If no valid options, return undefined
+  if (validOptions.length === 0) {
+    return undefined;
+  }
+
+  // Randomly select one of the valid options
+  const randomIndex = Math.floor(Math.random() * validOptions.length);
+  return validOptions[randomIndex];
+}
 
 export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
   set,
@@ -104,6 +209,7 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
           mode: "new",
           remainingXp: 0,
           totalXp: 0,
+          customizationUpgrades: {},
         },
       };
     });
@@ -197,6 +303,22 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
         }
       }
 
+      // Initialize customizationUpgrades from the resolved deck's customizations
+      const customizationUpgrades: Record<string, Record<number, number>> = {};
+      if (resolved.customizations) {
+        for (const [cardCode, customizations] of Object.entries(
+          resolved.customizations,
+        )) {
+          customizationUpgrades[cardCode] = {};
+          for (const [indexStr, customization] of Object.entries(
+            customizations,
+          )) {
+            const index = Number.parseInt(indexStr, 10);
+            customizationUpgrades[cardCode][index] = customization.xp_spent;
+          }
+        }
+      }
+
       return {
         draft: {
           phase: "picking",
@@ -220,6 +342,7 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
           totalXp: newXp, // Only NEW XP (will be passed to upgradeDeck)
           previousRemainingXp, // Store old deck's remaining XP separately
           exileString: undefined,
+          customizationUpgrades,
         },
       };
     });
@@ -287,8 +410,52 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
         additionalDeckOptions,
       );
 
-      // If no cards available (remaining XP too low), complete the draft
-      if (availableCards.length === 0) {
+      // Collect customizable upgrade options
+      const customizationOptions: CustomizationUpgradeOption[] = [];
+      const customizationUpgrades = draft.customizationUpgrades ?? {};
+
+      // NEW: Get all legal customizable cards for this investigator
+      const legalCustomizableCards = selectLegalCustomizableCards(
+        state,
+        investigatorBackCode,
+        pickedCards,
+        additionalDeckOptions,
+      );
+
+      // For each legal customizable card, try to generate a random upgrade
+      for (const card of legalCustomizableCards) {
+        const currentCustomizations = customizationUpgrades[card.code];
+        const randomUpgrade = getRandomLegalCustomizationUpgrade(
+          card,
+          currentCustomizations,
+          draft.remainingXp,
+          backCard,
+          metadata,
+        );
+
+        if (randomUpgrade) {
+          customizationOptions.push({
+            type: "customization",
+            cardCode: card.code,
+            optionIndex: randomUpgrade.optionIndex,
+            xpCost: randomUpgrade.xpCost,
+          });
+        }
+      }
+
+      // Combine regular cards and customization options
+      const allOptions: DraftOption[] = [
+        ...availableCards.map(
+          (card): RegularCardOption => ({
+            type: "card",
+            code: card.code,
+          }),
+        ),
+        ...customizationOptions,
+      ];
+
+      // If no options available (remaining XP too low), complete the draft
+      if (allOptions.length === 0) {
         set({
           draft: {
             ...draft,
@@ -300,8 +467,8 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
       }
 
       // Shuffle and take the required number of options
-      const shuffled = shuffle([...availableCards]);
-      const options = shuffled.slice(0, cardsPerPick).map((card) => card.code);
+      const shuffled = shuffle([...allOptions]);
+      const options = shuffled.slice(0, cardsPerPick);
 
       set({
         draft: {
@@ -360,7 +527,12 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
 
     // Shuffle and take the required number of options
     const shuffled = shuffle([...availableCards]);
-    const options = shuffled.slice(0, cardsPerPick).map((card) => card.code);
+    const options: DraftOption[] = shuffled.slice(0, cardsPerPick).map(
+      (card): RegularCardOption => ({
+        type: "card",
+        code: card.code,
+      }),
+    );
 
     set({
       draft: {
@@ -401,6 +573,75 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
           ...draft.pickedCards,
           [code]: currentQuantity + 1,
         },
+        remainingXp,
+      },
+    });
+
+    // Generate new options after picking
+    get().generateDraftOptions();
+  },
+
+  pickDraftCustomization(cardCode, optionIndex) {
+    const state = get();
+    assert(state.draft, "Draft must be initialized.");
+
+    const { draft } = state;
+    const metadata = selectMetadata(state);
+    const card = metadata.cards[cardCode];
+    assert(card, `Card ${cardCode} must exist.`);
+    assert(
+      card.customization_options,
+      `Card ${cardCode} must have customization options.`,
+    );
+    assert(
+      optionIndex >= 0 && optionIndex < card.customization_options.length,
+      `Invalid option index ${optionIndex} for card ${cardCode}.`,
+    );
+
+    const option = card.customization_options[optionIndex];
+    assert(
+      option.xp,
+      `Option ${optionIndex} for card ${cardCode} has no XP cost.`,
+    );
+
+    // Check if we have enough XP
+    if (option.xp > draft.remainingXp) {
+      return; // Not enough XP, don't allow the pick
+    }
+
+    // Always try to add a copy of the card to the deck (if not at deck limit)
+    const currentQuantity = draft.pickedCards[cardCode] ?? 0;
+    const deckLimit = cardLimit(card);
+
+    // Create a new pickedCards object to ensure Zustand detects the change
+    const updatedPickedCards = { ...draft.pickedCards };
+
+    // Add one copy of the card if under deck limit
+    // This ensures the card is added to the deck when picking its upgrade
+    if (currentQuantity < deckLimit) {
+      updatedPickedCards[cardCode] = currentQuantity + 1;
+    }
+    // Note: If already at deck limit, the upgrade is still applied to existing copies
+    // We still create a new object reference to ensure state updates are detected
+
+    // Update customization upgrades
+    const customizationUpgrades = { ...(draft.customizationUpgrades ?? {}) };
+    if (!customizationUpgrades[cardCode]) {
+      customizationUpgrades[cardCode] = {};
+    }
+    customizationUpgrades[cardCode] = {
+      ...customizationUpgrades[cardCode],
+      [optionIndex]: option.xp, // Mark as fully upgraded
+    };
+
+    // Deduct XP cost
+    const remainingXp = Math.max(0, draft.remainingXp - option.xp);
+
+    set({
+      draft: {
+        ...draft,
+        pickedCards: updatedPickedCards,
+        customizationUpgrades,
         remainingXp,
       },
     });

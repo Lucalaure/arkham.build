@@ -1,5 +1,5 @@
 import { CheckIcon, RotateCcwIcon } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useParams, useSearch } from "wouter";
 import { CardBack } from "@/components/card/card-back";
@@ -12,12 +12,17 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast.hooks";
 import { useStore } from "@/store";
 import { createDeck } from "@/store/lib/deck-factory";
-import { encodeCardPool, encodeSealedDeck } from "@/store/lib/deck-meta";
+import {
+  encodeCardPool,
+  encodeCustomizations,
+  encodeSealedDeck,
+} from "@/store/lib/deck-meta";
 import { resolveDeck } from "@/store/lib/resolve-deck";
 import {
   disconnectProviderIfUnauthorized,
   syncAdapters,
 } from "@/store/lib/sync";
+import type { Customizations, ResolvedDeck } from "@/store/lib/types";
 import { dehydrate } from "@/store/persist";
 import {
   selectDraftChecked,
@@ -34,6 +39,7 @@ import { displayAttribute, isSpecialCard } from "@/utils/card-utils";
 import { cx } from "@/utils/cx";
 import { useAccentColor } from "@/utils/use-accent-color";
 import { useDocumentTitle } from "@/utils/use-document-title";
+import { ResolvedDeckProvider } from "@/utils/use-resolved-deck";
 import css from "../deck-create/deck-create.module.css";
 import { DraftEditor } from "./draft-editor";
 import { DraftPicker } from "./draft-picker";
@@ -99,14 +105,161 @@ function DeckDraft() {
     };
   }, [code, search, initDraft, initUpgradeDraft, resetDraft]);
 
-  return draft ? (
-    <CardModalProvider>
-      <DeckDraftInner />
-    </CardModalProvider>
+  // Create resolved deck at this level so CardModal can access it
+  // Only create resolved deck if draft exists (selectDraftInvestigators requires draft)
+  const metadata = useStore(selectMetadata);
+  const lookupTables = useStore(selectLookupTables);
+  const collator = useStore(selectLocaleSortingCollator);
+
+  // Safely get investigators only when draft exists
+  const investigators = useStore((state) => {
+    if (!state.draft) return null;
+    try {
+      return selectDraftInvestigators(state);
+    } catch {
+      return null;
+    }
+  });
+  const investigator = investigators?.investigator;
+
+  const resolvedDraftDeck = useMemo((): ResolvedDeck | null => {
+    if (!draft || !investigator) return null;
+
+    const investigatorCard = metadata.cards[draft.investigatorFrontCode];
+    if (!investigatorCard) return null;
+
+    // Combine signature cards and picked cards
+    const slots: Record<string, number> = {
+      ...draft.signatureCards,
+      ...draft.pickedCards,
+    };
+
+    // Create a minimal deck
+    const meta: Record<string, string | null> = {};
+
+    // Only set alternate_front if it's different from the base investigator
+    if (draft.investigatorFrontCode !== draft.investigatorCode) {
+      meta.alternate_front = draft.investigatorFrontCode;
+    }
+
+    // Only set alternate_back if it's different from the base investigator
+    if (draft.investigatorBackCode !== draft.investigatorCode) {
+      meta.alternate_back = draft.investigatorBackCode;
+    }
+
+    // Merge customization upgrades into meta if present
+    if (
+      draft.customizationUpgrades &&
+      Object.keys(draft.customizationUpgrades).length > 0
+    ) {
+      // Convert customizationUpgrades to Customizations format
+      const customizationsToMerge: Customizations = {};
+      for (const [cardCode, upgrades] of Object.entries(
+        draft.customizationUpgrades,
+      )) {
+        customizationsToMerge[cardCode] = {};
+        for (const [indexStr, xpSpent] of Object.entries(upgrades)) {
+          const index = Number.parseInt(indexStr, 10);
+          // Create Customization object with index and xp_spent
+          // selections is optional and omitted if not needed
+          customizationsToMerge[cardCode][index] = {
+            index,
+            xp_spent: xpSpent,
+          };
+        }
+      }
+
+      // For upgrade mode, merge with existing customizations from the original deck
+      if (draft.upgradeDeckId) {
+        const state = useStore.getState();
+        const originalDeck = state.data.decks[draft.upgradeDeckId];
+        if (originalDeck) {
+          const existingResolved = resolveDeck(
+            {
+              lookupTables,
+              metadata,
+              sharing: state.sharing,
+            },
+            collator,
+            originalDeck,
+          );
+          const existingCustomizations = existingResolved.customizations ?? {};
+
+          // Merge: existing customizations take precedence, then add new upgrades
+          const mergedCustomizations: Customizations = {
+            ...existingCustomizations,
+          };
+          for (const [cardCode, upgrades] of Object.entries(
+            customizationsToMerge,
+          )) {
+            if (!mergedCustomizations[cardCode]) {
+              mergedCustomizations[cardCode] = {};
+            }
+            for (const [indexStr, customization] of Object.entries(upgrades)) {
+              const index = Number.parseInt(indexStr, 10);
+              const existing = mergedCustomizations[cardCode][index];
+              // Use the higher xp_spent value (in case of partial upgrades)
+              if (!existing || customization.xp_spent > existing.xp_spent) {
+                mergedCustomizations[cardCode][index] = customization;
+              }
+            }
+          }
+
+          // Encode and merge into meta
+          const encodedCustomizations =
+            encodeCustomizations(mergedCustomizations);
+          Object.assign(meta, encodedCustomizations);
+        } else {
+          // No original deck found, just use the new customizations
+          const encodedCustomizations = encodeCustomizations(
+            customizationsToMerge,
+          );
+          Object.assign(meta, encodedCustomizations);
+        }
+      } else {
+        // New draft mode - just encode the customizations
+        const encodedCustomizations = encodeCustomizations(
+          customizationsToMerge,
+        );
+        Object.assign(meta, encodedCustomizations);
+      }
+    }
+
+    const deck = createDeck({
+      investigator_code: draft.investigatorCode,
+      investigator_name: investigator.card.real_name,
+      name: draft.title,
+      slots,
+      meta: JSON.stringify(meta),
+      taboo_id: draft.tabooSetId ?? null,
+      problem: null,
+    });
+
+    // Resolve the deck to get ResolvedDeck structure
+    try {
+      return resolveDeck(
+        { metadata, lookupTables, sharing: { decks: {} } },
+        collator,
+        deck,
+      );
+    } catch {
+      return null;
+    }
+  }, [draft, investigator, metadata, lookupTables, collator]);
+
+  if (!draft) return null;
+
+  return resolvedDraftDeck ? (
+    <ResolvedDeckProvider resolvedDeck={resolvedDraftDeck} canEdit={false}>
+      <CardModalProvider>
+        <DeckDraftInner resolvedDraftDeck={resolvedDraftDeck} />
+      </CardModalProvider>
+    </ResolvedDeckProvider>
   ) : null;
 }
 
-function DeckDraftInner() {
+function DeckDraftInner(props: { resolvedDraftDeck: ResolvedDeck }) {
+  const { resolvedDraftDeck } = props;
   const { t } = useTranslation();
   const toast = useToast();
   const [, navigate] = useLocation();
@@ -115,6 +268,9 @@ function DeckDraftInner() {
   const draft = useStore(selectDraftChecked);
   const startDraft = useStore((state) => state.startDraft);
   const pickDraftCard = useStore((state) => state.pickDraftCard);
+  const pickDraftCustomization = useStore(
+    (state) => state.pickDraftCustomization,
+  );
   const generateDraftOptions = useStore((state) => state.generateDraftOptions);
   const resetDraft = useStore((state) => state.resetDraft);
   const createShare = useStore((state) => state.createShare);
@@ -250,6 +406,65 @@ function DeckDraftInner() {
           ...draft.pickedCards,
         };
 
+        // Merge customization upgrades into deck meta
+        const originalMeta = JSON.parse(originalDeck.meta || "{}");
+        const customizationUpgrades = draft.customizationUpgrades ?? {};
+
+        // Convert customizationUpgrades to Customizations format
+        const customizationsToMerge: Customizations = {};
+        for (const [cardCode, upgrades] of Object.entries(
+          customizationUpgrades,
+        )) {
+          customizationsToMerge[cardCode] = {};
+          for (const [indexStr, xpSpent] of Object.entries(upgrades)) {
+            const index = Number.parseInt(indexStr, 10);
+            customizationsToMerge[cardCode][index] = {
+              index,
+              xp_spent: xpSpent,
+            };
+          }
+        }
+
+        // Merge with existing customizations from the original deck
+        const resolvedOriginal = resolveDeck(
+          {
+            lookupTables,
+            metadata,
+            sharing: state.sharing,
+          },
+          collator,
+          originalDeck,
+        );
+        const existingCustomizations = resolvedOriginal.customizations ?? {};
+
+        // Merge: existing customizations take precedence, then add new upgrades
+        const mergedCustomizations: Customizations = {
+          ...existingCustomizations,
+        };
+        for (const [cardCode, upgrades] of Object.entries(
+          customizationsToMerge,
+        )) {
+          if (!mergedCustomizations[cardCode]) {
+            mergedCustomizations[cardCode] = {};
+          }
+          for (const [indexStr, customization] of Object.entries(upgrades)) {
+            const index = Number.parseInt(indexStr, 10);
+            const existing = mergedCustomizations[cardCode][index];
+            // Use the higher xp_spent value (in case of partial upgrades)
+            if (!existing || customization.xp_spent > existing.xp_spent) {
+              mergedCustomizations[cardCode][index] = customization;
+            }
+          }
+        }
+
+        // Encode customizations and merge into meta
+        const encodedCustomizations =
+          encodeCustomizations(mergedCustomizations);
+        const mergedMeta = {
+          ...originalMeta,
+          ...encodedCustomizations,
+        };
+
         // Calculate XP spent from NEW XP only
         // remainingXp includes both previous remaining and new XP
         // newXpRemaining = remainingXp - previousRemainingXp (but can't be negative)
@@ -260,8 +475,9 @@ function DeckDraftInner() {
         );
         const newXpSpent = draft.totalXp - newXpRemaining;
 
-        // Temporarily update the deck's slots with merged slots
+        // Temporarily update the deck's slots and meta with merged values
         const originalSlots = originalDeck.slots;
+        const originalMetaStr = originalDeck.meta;
         useStore.setState({
           data: {
             ...state.data,
@@ -270,6 +486,7 @@ function DeckDraftInner() {
               [draft.upgradeDeckId]: {
                 ...originalDeck,
                 slots: mergedSlots,
+                meta: JSON.stringify(mergedMeta),
               },
             },
           },
@@ -285,7 +502,7 @@ function DeckDraftInner() {
             usurped: undefined,
           });
 
-          // Restore original deck slots
+          // Restore original deck slots and meta
           useStore.setState({
             data: {
               ...useStore.getState().data,
@@ -294,6 +511,7 @@ function DeckDraftInner() {
                 [draft.upgradeDeckId]: {
                   ...originalDeck,
                   slots: originalSlots,
+                  meta: originalMetaStr,
                 },
               },
             },
@@ -304,7 +522,7 @@ function DeckDraftInner() {
           navigate(`/deck/edit/${newDeck.id}`, { replace: true });
           return;
         } catch (err) {
-          // Restore original deck slots on error
+          // Restore original deck slots and meta on error
           useStore.setState({
             data: {
               ...useStore.getState().data,
@@ -313,6 +531,7 @@ function DeckDraftInner() {
                 [draft.upgradeDeckId]: {
                   ...originalDeck,
                   slots: originalSlots,
+                  meta: originalMetaStr,
                 },
               },
             },
@@ -491,22 +710,22 @@ function DeckDraftInner() {
 
       <div className={css["layout-sidebar"]}>
         <DraftEditor
-          investigatorCode={draft.investigatorCode}
-          investigatorFrontCode={draft.investigatorFrontCode}
-          investigatorBackCode={draft.investigatorBackCode}
+          resolvedDeck={resolvedDraftDeck}
           pickedCards={draft.pickedCards}
           signatureCards={draft.signatureCards}
           currentCount={currentDeckSize}
           targetCount={draft.targetDeckSize}
-          investigatorName={investigator.card.real_name}
           title={draft.title}
-          tabooSetId={draft.tabooSetId ?? null}
         />
       </div>
 
       <div className={css["layout-content"]}>
         {phase === "picking" && (
-          <DraftPicker options={draft.currentOptions} onPick={handlePick} />
+          <DraftPicker
+            options={draft.currentOptions}
+            onPick={handlePick}
+            onPickCustomization={pickDraftCustomization}
+          />
         )}
 
         {phase === "complete" && (

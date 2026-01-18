@@ -854,6 +854,9 @@
         "start": "Start Draft",
         "insufficient_cards": "Your collection doesn't have enough legal cards for this investigator. You need at least {{required}} cards but only have {{available}}."
       },
+      "customization": {
+        "will_add_card_copy": "A copy of this card will be added to your deck."
+      },
       "picking": {
         "progress": "{{current}} / {{target}} cards",
         "pick_card": "Pick a card"
