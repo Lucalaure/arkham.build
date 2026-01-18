@@ -21,6 +21,29 @@
   grid-template-columns: minmax(min-content, 20rem) 1fr;
 }
 
+.layout-draft-setup {
+  --selections-width: 24rem;
+
+  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-areas:
+    "header header"
+    "sidebar content"
+    "sidebar selections"
+    "footer footer";
+  grid-template-rows: auto max-content max-content auto;
+}
+
+@media screen and (min-width: 75rem) {
+  .layout-draft-setup {
+    grid-template-areas:
+      "header header header"
+      "sidebar content selections"
+      "footer footer footer";
+    grid-template-columns: var(--sidebar-width) 1fr var(--selections-width);
+    grid-template-rows: auto 1fr auto;
+  }
+}
+
 .layout-header {
   grid-area: header;
 }
@@ -46,10 +69,31 @@
   gap: 1rem;
   overflow-y: auto;
   min-height: 0;
+  min-width: 0;
 }
 
 .layout-footer {
   grid-area: footer;
+}
+
+.layout-selections {
+  grid-area: selections;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.cards {
+  container-type: inline-size;
+  max-width: 54rem;
+  margin-inline: auto;
+}
+
+.cards > * + * {
+  margin-top: 1rem;
+}
+
+.card-selections > * + * {
+  margin-top: 0.5rem;
 }
 
 /* Complete phase styles */
@@ -76,6 +120,9 @@
   gap: 1rem;
   overflow: visible;
   min-height: 0;
+  width: 100%;
+  min-width: 0;
+  flex: 1;
 }
 
 .picker-header {
@@ -107,16 +154,41 @@
 .picker-options {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   list-style: none;
   padding: 0.25rem 0;
   margin: 0;
   overflow: visible;
   min-height: 0;
+  width: 100%;
+}
+
+@media (min-width: 60rem) {
+  .picker-options {
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  }
+}
+
+@media (min-width: 90rem) {
+  .picker-options {
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  }
 }
 
 .picker-option {
   list-style: none;
+}
+
+.option-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.myriad-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
 }
 
 .option-trigger {

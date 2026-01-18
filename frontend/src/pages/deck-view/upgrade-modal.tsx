@@ -15,6 +15,7 @@ import {
   ModalInner,
 } from "@/components/ui/modal";
 import { Scroller } from "@/components/ui/scroller";
+import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/components/ui/toast.hooks";
 import { useStore } from "@/store";
 import type { ResolvedDeck } from "@/store/lib/types";
@@ -86,7 +87,8 @@ export function UpgradeModal(props: Props) {
   const [xp, setXp] = useState(
     new URLSearchParams(search).get("upgrade_xp")?.toString() ?? "",
   );
-  const [cardsPerPick, setCardsPerPick] = useState<"3" | "5" | "10">("5");
+  const [cardsPerPick, setCardsPerPick] = useState(5);
+  const [skipsAllowed, setSkipsAllowed] = useState(0);
   const isDraftDeck = deck.metaParsed?.is_draft === true;
 
   useEffect(() => {
@@ -135,7 +137,8 @@ export function UpgradeModal(props: Props) {
           xp: newXp.toString(), // Only pass NEW XP
           previous_remaining_xp: remainingXp.toString(), // Pass remaining XP separately
           total_available_xp: totalAvailableXp.toString(), // Total for card pool filtering
-          cards_per_pick: cardsPerPick,
+          cards_per_pick: cardsPerPick.toString(),
+          skips_allowed: skipsAllowed.toString(),
         });
         if (exileString) {
           params.set("exile", exileString);
@@ -196,6 +199,7 @@ export function UpgradeModal(props: Props) {
       hasCharonsObol,
       isDraftDeck,
       cardsPerPick,
+      skipsAllowed,
       t,
     ],
   );
@@ -335,25 +339,72 @@ export function UpgradeModal(props: Props) {
               )}
             </Field>
             {isDraftDeck && (
-              <Field full padded>
-                <FieldLabel htmlFor="cards-per-pick">
-                  {t("deck_view.upgrade_modal.cards_per_pick")}
-                </FieldLabel>
-                <select
-                  id="cards-per-pick"
-                  value={cardsPerPick}
-                  onChange={(evt) => {
-                    const value = evt.target.value;
-                    if (value === "3" || value === "5" || value === "10") {
-                      setCardsPerPick(value);
-                    }
-                  }}
-                >
-                  <option value="3">3</option>
-                  <option value="5">5</option>
-                  <option value="10">10</option>
-                </select>
-              </Field>
+              <>
+                <Field full padded>
+                  <FieldLabel htmlFor="cards-per-pick">
+                    {t("deck_view.upgrade_modal.cards_per_pick")}
+                  </FieldLabel>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "1rem",
+                    }}
+                  >
+                    <Slider
+                      id="cards-per-pick"
+                      min={2}
+                      max={15}
+                      step={1}
+                      value={[cardsPerPick]}
+                      onValueChange={(value) => setCardsPerPick(value[0])}
+                      style={{ flex: 1 }}
+                    />
+                    <output
+                      htmlFor="cards-per-pick"
+                      style={{
+                        minWidth: "2rem",
+                        textAlign: "right",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {cardsPerPick}
+                    </output>
+                  </div>
+                </Field>
+                <Field full padded>
+                  <FieldLabel htmlFor="skips-allowed">
+                    {t("deck_draft.setup.skips_allowed")}
+                  </FieldLabel>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "1rem",
+                    }}
+                  >
+                    <Slider
+                      id="skips-allowed"
+                      min={0}
+                      max={5}
+                      step={1}
+                      value={[skipsAllowed]}
+                      onValueChange={(value) => setSkipsAllowed(value[0])}
+                      style={{ flex: 1 }}
+                    />
+                    <output
+                      htmlFor="skips-allowed"
+                      style={{
+                        minWidth: "2rem",
+                        textAlign: "right",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {skipsAllowed}
+                    </output>
+                  </div>
+                </Field>
+              </>
             )}
             {hasGreatWork && (
               <Field

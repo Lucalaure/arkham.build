@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import type { SelectOption } from "@/components/ui/select";
 import { Select } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { useStore } from "@/store";
 import { decodeSelections } from "@/store/lib/deck-meta";
 import type { CardWithRelations } from "@/store/lib/types";
@@ -48,6 +49,7 @@ export function DraftSetupEditor(props: Props) {
   const setCardPool = useStore((state) => state.draftSetCardPool);
   const setSealedDeck = useStore((state) => state.draftSetSealed);
   const setCardsPerPick = useStore((state) => state.draftSetCardsPerPick);
+  const setSkipsAllowed = useStore((state) => state.draftSetSkipsAllowed);
 
   // Use investigatorBackCode for card pool validation since deck building rules are on the back card
   const { canStart, required, available } = useStore((state) =>
@@ -251,15 +253,54 @@ export function DraftSetupEditor(props: Props) {
         <FieldLabel htmlFor="cards-per-pick">
           {t("deck_draft.setup.cards_per_pick")}
         </FieldLabel>
-        <select
-          id="cards-per-pick"
-          value={draft.cardsPerPick}
-          onChange={(evt) => setCardsPerPick(Number(evt.target.value))}
-        >
-          <option value={3}>3</option>
-          <option value={5}>5</option>
-          <option value={10}>10</option>
-        </select>
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <Slider
+            id="cards-per-pick"
+            min={2}
+            max={15}
+            step={1}
+            value={[draft.cardsPerPick]}
+            onValueChange={(value) => setCardsPerPick(value[0])}
+            style={{ flex: 1 }}
+          />
+          <output
+            htmlFor="cards-per-pick"
+            style={{
+              minWidth: "2rem",
+              textAlign: "right",
+              fontWeight: 600,
+            }}
+          >
+            {draft.cardsPerPick}
+          </output>
+        </div>
+      </Field>
+
+      <Field full padded>
+        <FieldLabel htmlFor="skips-allowed">
+          {t("deck_draft.setup.skips_allowed")}
+        </FieldLabel>
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <Slider
+            id="skips-allowed"
+            min={0}
+            max={5}
+            step={1}
+            value={[draft.skipsAllowed]}
+            onValueChange={(value) => setSkipsAllowed(value[0])}
+            style={{ flex: 1 }}
+          />
+          <output
+            htmlFor="skips-allowed"
+            style={{
+              minWidth: "2rem",
+              textAlign: "right",
+              fontWeight: 600,
+            }}
+          >
+            {draft.skipsAllowed}
+          </output>
+        </div>
       </Field>
 
       {!canStart && (

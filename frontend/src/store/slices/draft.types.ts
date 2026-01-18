@@ -17,6 +17,8 @@ export type RegularCardOption = {
 
 export type DraftOption = RegularCardOption | CustomizationUpgradeOption;
 
+export type DraftCardSet = "requiredCards" | "advanced" | "replacement";
+
 export type DraftState = {
   phase: DraftPhase;
   investigatorCode: string;
@@ -33,6 +35,7 @@ export type DraftState = {
   selections: {
     [key: string]: string;
   };
+  sets: DraftCardSet[];
   cardPool?: string[] | null; // undefined = use default environment, null = explicitly cleared (no filter), array = manually selected packs
   sealed?: SealedDeck;
   mode: "new" | "upgrade";
@@ -42,6 +45,8 @@ export type DraftState = {
   previousRemainingXp?: number; // Remaining XP from the deck being upgraded (for card pool filtering)
   exileString?: string;
   customizationUpgrades?: Record<string, Record<number, number>>; // cardCode -> optionIndex -> xp_spent
+  skipsAllowed: number;
+  skipsUsed: number;
 };
 
 export type DraftSlice = {
@@ -66,9 +71,12 @@ export type DraftSlice = {
   draftSetCardPool: (value: string[]) => void;
   draftSetSealed: (payload: SealedDeck | undefined) => void;
   draftSetCardsPerPick: (value: number) => void;
+  draftSetSkipsAllowed: (value: number) => void;
+  draftToggleCardSet: (value: string) => void;
   generateDraftOptions: () => void;
-  pickDraftCard: (code: string) => void;
+  pickDraftCard: (code: string, quantity?: number) => void;
   pickDraftCustomization: (cardCode: string, optionIndex: number) => void;
+  skipDraftStep: () => void;
   resetDraft: () => void;
   startDraft: () => void;
 };

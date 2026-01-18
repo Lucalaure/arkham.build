@@ -6,6 +6,7 @@ import { CardBack } from "@/components/card/card-back";
 import { CardContainer } from "@/components/card/card-container";
 import { CardFace } from "@/components/card/card-face";
 import { CardModalProvider } from "@/components/card-modal/card-modal-provider";
+import { CardSet } from "@/components/cardset";
 import { Footer } from "@/components/footer";
 import { Masthead } from "@/components/masthead";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import {
 import type { Customizations, ResolvedDeck } from "@/store/lib/types";
 import { dehydrate } from "@/store/persist";
 import {
+  selectDraftCardSets,
   selectDraftChecked,
   selectDraftInvestigators,
 } from "@/store/selectors/draft";
@@ -40,7 +42,7 @@ import { cx } from "@/utils/cx";
 import { useAccentColor } from "@/utils/use-accent-color";
 import { useDocumentTitle } from "@/utils/use-document-title";
 import { ResolvedDeckProvider } from "@/utils/use-resolved-deck";
-import css from "../deck-create/deck-create.module.css";
+import css from "./deck-draft.module.css";
 import { DraftEditor } from "./draft-editor";
 import { DraftPicker } from "./draft-picker";
 import { DraftSetupEditor } from "./draft-setup-editor";
@@ -52,6 +54,7 @@ function DeckDraft() {
   const draft = useStore((state) => state.draft);
   const initDraft = useStore((state) => state.initDraft);
   const initUpgradeDraft = useStore((state) => state.initUpgradeDraft);
+  const draftSetSkipsAllowed = useStore((state) => state.draftSetSkipsAllowed);
   const resetDraft = useStore((state) => state.resetDraft);
 
   // Initialize draft on mount
@@ -62,6 +65,7 @@ function DeckDraft() {
     const previousRemainingXp = params.get("previous_remaining_xp");
     const totalAvailableXp = params.get("total_available_xp");
     const cardsPerPick = params.get("cards_per_pick");
+    const skipsAllowed = params.get("skips_allowed");
 
     // Check if this is an upgrade draft
     if (upgradeDeckId && upgradeXp !== null) {
@@ -73,6 +77,7 @@ function DeckDraft() {
         ? Number.parseInt(totalAvailableXp, 10)
         : undefined;
       const cardsPerPickValue = Number.parseInt(cardsPerPick || "5", 10);
+      const skipsAllowedValue = Number.parseInt(skipsAllowed || "0", 10);
       // Allow upgrade draft even with 0 new XP if there's remaining XP or total available XP
       if (
         !Number.isNaN(newXp) &&
@@ -87,6 +92,10 @@ function DeckDraft() {
           prevRemaining,
           totalAvailable,
         );
+        // Set skips allowed after initialization
+        if (skipsAllowedValue > 0) {
+          draftSetSkipsAllowed(skipsAllowedValue);
+        }
         return () => {
           resetDraft();
         };
@@ -103,7 +112,14 @@ function DeckDraft() {
     return () => {
       resetDraft();
     };
-  }, [code, search, initDraft, initUpgradeDraft, resetDraft]);
+  }, [
+    code,
+    search,
+    initDraft,
+    initUpgradeDraft,
+    resetDraft,
+    draftSetSkipsAllowed,
+  ]);
 
   // Create resolved deck at this level so CardModal can access it
   // Only create resolved deck if draft exists (selectDraftInvestigators requires draft)
@@ -300,8 +316,8 @@ function DeckDraftInner(props: { resolvedDraftDeck: ResolvedDeck }) {
   }, [startDraft]);
 
   const handlePick = useCallback(
-    (cardCode: string) => {
-      pickDraftCard(cardCode);
+    (cardCode: string, quantity?: number) => {
+      pickDraftCard(cardCode, quantity);
     },
     [pickDraftCard],
   );
@@ -682,7 +698,10 @@ function DeckDraftInner(props: { resolvedDraftDeck: ResolvedDeck }) {
 
   if (phase === "setup") {
     return (
-      <div className={cx(css["layout"], "fade-in")} style={accentColor}>
+      <div
+        className={cx(css["layout"], css["layout-draft-setup"], "fade-in")}
+        style={accentColor}
+      >
         <Masthead className={css["layout-header"]} />
         <div className={css["layout-sidebar"]}>
           <DraftSetupEditor
@@ -693,6 +712,9 @@ function DeckDraftInner(props: { resolvedDraftDeck: ResolvedDeck }) {
         </div>
         <div className={css["layout-content"]}>
           <DraftSetupInvestigator />
+        </div>
+        <div className={css["layout-selections"]}>
+          <DraftCardSets />
         </div>
         <footer className={css["layout-footer"]}>
           <Footer />
@@ -781,6 +803,30 @@ function DraftSetupInvestigator() {
         />
         <CardBack card={back.card} size="full" />
       </CardContainer>
+    </div>
+  );
+}
+
+function DraftCardSets() {
+  const cardSets = useStore(selectDraftCardSets);
+  const { investigator } = useStore(selectDraftInvestigators);
+  const toggleCardSet = useStore((state) => state.draftToggleCardSet);
+  const cssVariables = useAccentColor(investigator.card);
+
+  const onCheckedChange = useCallback(
+    (id: string) => {
+      toggleCardSet(id);
+    },
+    [toggleCardSet],
+  );
+
+  return (
+    <div className={css["card-selections"]} style={cssVariables}>
+      {cardSets.map((set) =>
+        set.cards.length ? (
+          <CardSet key={set.id} onSelect={onCheckedChange} set={set} />
+        ) : null,
+      )}
     </div>
   );
 }

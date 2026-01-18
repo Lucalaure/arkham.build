@@ -1,5 +1,7 @@
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { CardScanControlled } from "@/components/card-scan";
+import { Button } from "@/components/ui/button";
 import { useStore } from "@/store";
 import { applyCardChanges } from "@/store/lib/card-edits";
 import { encodeCustomizations } from "@/store/lib/deck-meta";
@@ -18,7 +20,7 @@ import css from "./deck-draft.module.css";
 
 type Props = {
   options: DraftOption[];
-  onPick: (code: string) => void;
+  onPick: (code: string, quantity?: number) => void;
   onPickCustomization: (cardCode: string, optionIndex: number) => void;
 };
 
@@ -30,7 +32,17 @@ export function DraftPicker(props: Props) {
   const lookupTables = useStore(selectLookupTables);
   const collator = useStore(selectLocaleSortingCollator);
   const draft = useStore((state) => state.draft);
+  const skipDraftStep = useStore((state) => state.skipDraftStep);
   const tabooSetId = draft?.tabooSetId;
+
+  const skipsRemaining = draft ? draft.skipsAllowed - draft.skipsUsed : 0;
+  const canSkip = skipsRemaining > 0;
+
+  const handleSkip = useCallback(() => {
+    if (canSkip) {
+      skipDraftStep();
+    }
+  }, [canSkip, skipDraftStep]);
 
   // Get resolved deck for customization upgrades (only in upgrade mode)
   // Create a temporary deck with customization upgrades merged for CustomizableSheet
@@ -171,6 +183,12 @@ export function DraftPicker(props: Props) {
   const targetDeckSize =
     draft?.mode === "new" ? draft.targetDeckSize : undefined;
 
+  // Calculate remaining deck slots for base draft mode
+  const remainingSlots =
+    draft?.mode === "new" && targetDeckSize !== undefined
+      ? targetDeckSize - cardsAdded
+      : undefined;
+
   return (
     <div className={css["picker-container"]}>
       <div className={css["picker-header"]}>
@@ -190,32 +208,70 @@ export function DraftPicker(props: Props) {
             </span>
           )}
         </h2>
+        {draft && draft.skipsAllowed > 0 && (
+          <Button onClick={handleSkip} disabled={!canSkip} variant="primary">
+            {t("deck_draft.picking.skip")} ({skipsRemaining})
+          </Button>
+        )}
       </div>
 
       <ul className={css["picker-options"]}>
-        {cards.map((card) => (
-          <li key={card.code} className={css["picker-option"]}>
-            <button
-              type="button"
-              className={css["option-trigger"]}
-              onClick={() => onPick(card.code)}
-              style={
-                {
-                  ...getAccentColorsForFaction(card),
-                  "--level": cardLevel(card) ?? 0,
-                } as React.CSSProperties
-              }
-            >
-              <CardScanControlled
-                card={card}
-                flipped={false}
-                hideFlipButton
-                preventFlip
-                draggable={false}
-              />
-            </button>
-          </li>
-        ))}
+        {cards.map((card) => {
+          const isMyriad = card.myriad === true;
+          const canPick3x =
+            draft?.mode !== "new" ||
+            remainingSlots === undefined ||
+            remainingSlots >= 3;
+
+          return (
+            <li key={card.code} className={css["picker-option"]}>
+              <div className={css["option-wrapper"]}>
+                <button
+                  type="button"
+                  className={css["option-trigger"]}
+                  onClick={() => {
+                    if (!isMyriad) {
+                      onPick(card.code);
+                    }
+                  }}
+                  style={
+                    {
+                      ...getAccentColorsForFaction(card),
+                      "--level": cardLevel(card) ?? 0,
+                    } as React.CSSProperties
+                  }
+                >
+                  <CardScanControlled
+                    card={card}
+                    flipped={false}
+                    hideFlipButton
+                    preventFlip
+                    draggable={false}
+                  />
+                </button>
+                {isMyriad && (
+                  <div className={css["myriad-buttons"]}>
+                    <Button
+                      onClick={() => onPick(card.code, 1)}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      1x
+                    </Button>
+                    <Button
+                      onClick={() => onPick(card.code, 3)}
+                      disabled={!canPick3x}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      3x
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </li>
+          );
+        })}
         {customizationOptions.map((opt) => {
           const card = metadata.cards[opt.cardCode];
           if (!card || !card.customization_options) return null;

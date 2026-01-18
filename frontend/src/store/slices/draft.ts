@@ -6,11 +6,13 @@ import {
   displayAttribute,
   isSpecialCard,
 } from "@/utils/card-utils";
+import { SPECIAL_CARD_CODES } from "@/utils/constants";
 import { currentEnvironmentPacks } from "@/utils/environments";
 import { range } from "@/utils/range";
 import { shuffle } from "@/utils/shuffle";
 import { applyCardChanges } from "../lib/card-edits";
 import { filterInvestigatorAccess } from "../lib/filtering";
+import { resolveCardWithRelations } from "../lib/resolve-card";
 import { resolveDeck } from "../lib/resolve-deck";
 import type { Card, DeckOption } from "../schemas/card.schema";
 import { selectConnectionsData } from "../selectors/connections";
@@ -29,6 +31,7 @@ import type { Metadata } from "../slices/metadata.types";
 import type { StoreState } from ".";
 import type {
   CustomizationUpgradeOption,
+  DraftCardSet,
   DraftOption,
   DraftSlice,
   RegularCardOption,
@@ -205,11 +208,14 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
           provider: providerExists ? provider : "local",
           title: `${displayAttribute(investigator, "name")} Draft`,
           selections: {},
+          sets: ["requiredCards"],
           cardPool,
           mode: "new",
           remainingXp: 0,
           totalXp: 0,
           customizationUpgrades: {},
+          skipsAllowed: 0,
+          skipsUsed: 0,
         },
       };
     });
@@ -334,6 +340,7 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
           provider: providerExists ? provider : "local",
           title: deck.name,
           selections: draftSelections,
+          sets: ["requiredCards"],
           cardPool,
           sealed: resolved.sealedDeck,
           mode: "upgrade",
@@ -343,6 +350,8 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
           previousRemainingXp, // Store old deck's remaining XP separately
           exileString: undefined,
           customizationUpgrades,
+          skipsAllowed: 0,
+          skipsUsed: 0,
         },
       };
     });
@@ -355,10 +364,64 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
     const state = get();
     assert(state.draft, "Draft must be initialized before starting.");
 
+    const draft = state.draft;
+    const metadata = selectMetadata(state);
+    const lookupTables = selectLookupTables(state);
+    const collator = selectLocaleSortingCollator(state);
+    const backCardCode = draft.investigatorBackCode;
+
+    // Recalculate signature cards based on selected sets
+    const backCardWithRelations = resolveCardWithRelations(
+      { metadata, lookupTables },
+      collator,
+      backCardCode,
+      draft.tabooSetId,
+      undefined,
+      true,
+    );
+
+    const signatureCards: Record<string, number> = {};
+    const relations = backCardWithRelations?.relations;
+
+    // Add requiredCards if selected
+    if (draft.sets.includes("requiredCards") && relations?.requiredCards) {
+      for (const { card } of relations.requiredCards) {
+        let quantity = card.quantity ?? 1;
+        if (card.code === SPECIAL_CARD_CODES.OCCULT_EVIDENCE) {
+          const backCard = metadata.cards[backCardCode];
+          const baseDeckSize = backCard?.deck_requirements?.size ?? 30;
+          quantity = Math.max(1, Math.floor((baseDeckSize - 20) / 10));
+        }
+        signatureCards[card.code] = quantity;
+      }
+    }
+
+    // Add advanced if selected (mutually exclusive with requiredCards)
+    if (draft.sets.includes("advanced") && relations?.advanced) {
+      for (const { card } of relations.advanced) {
+        signatureCards[card.code] = card.quantity ?? 1;
+      }
+    }
+
+    // Add replacement if selected
+    if (draft.sets.includes("replacement") && relations?.replacement) {
+      for (const { card } of relations.replacement) {
+        signatureCards[card.code] = card.quantity ?? 1;
+      }
+    }
+
+    // Always add random basic weakness
+    const backCard = metadata.cards[backCardCode];
+    const randomWeaknessCount =
+      backCard?.deck_requirements?.random?.length ?? 1;
+    signatureCards[SPECIAL_CARD_CODES.RANDOM_BASIC_WEAKNESS] =
+      randomWeaknessCount;
+
     set({
       draft: {
-        ...state.draft,
+        ...draft,
         phase: "picking",
+        signatureCards,
       },
     });
 
@@ -543,7 +606,7 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
     });
   },
 
-  pickDraftCard(code) {
+  pickDraftCard(code, quantity = 1) {
     const state = get();
     assert(state.draft, "Draft must be initialized.");
 
@@ -558,11 +621,13 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
     }
 
     const currentQuantity = draft.pickedCards[code] ?? 0;
+    const newQuantity = currentQuantity + quantity;
 
     // For upgrade mode, deduct XP cost
+    // For Myriad cards, only the first copy costs XP
     let remainingXp = draft.remainingXp;
     if (draft.mode === "upgrade") {
-      const xpCost = countExperience(card, 1);
+      const xpCost = countExperience(card, quantity);
       remainingXp = Math.max(0, draft.remainingXp - xpCost);
     }
 
@@ -571,7 +636,7 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
         ...draft,
         pickedCards: {
           ...draft.pickedCards,
-          [code]: currentQuantity + 1,
+          [code]: newQuantity,
         },
         remainingXp,
       },
@@ -792,5 +857,130 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
         },
       };
     });
+  },
+
+  draftToggleCardSet(value) {
+    set((state) => {
+      assert(state.draft, "Draft must be initialized.");
+      const draft = state.draft;
+
+      // Validate the card set value
+      const validSets: DraftCardSet[] = [
+        "requiredCards",
+        "advanced",
+        "replacement",
+      ];
+      if (!validSets.includes(value as DraftCardSet)) {
+        return state;
+      }
+
+      const nextSets: DraftCardSet[] = draft.sets.filter((set) => {
+        // Handle mutually exclusive sets: advanced and requiredCards
+        const mutuallyExclusive =
+          (set === "advanced" && value === "requiredCards") ||
+          (set === "requiredCards" && value === "advanced");
+
+        return !mutuallyExclusive;
+      });
+
+      const newSets = nextSets.includes(value as DraftCardSet)
+        ? nextSets.filter((set) => set !== value)
+        : [...nextSets, value as DraftCardSet];
+
+      // Recalculate signature cards based on selected sets
+      const metadata = selectMetadata(state);
+      const lookupTables = selectLookupTables(state);
+      const collator = selectLocaleSortingCollator(state);
+      const backCardCode = draft.investigatorBackCode;
+
+      // Get investigator with relations
+      const backCardWithRelations = resolveCardWithRelations(
+        { metadata, lookupTables },
+        collator,
+        backCardCode,
+        draft.tabooSetId,
+        undefined,
+        true,
+      );
+
+      const signatureCards: Record<string, number> = {};
+      const relations = backCardWithRelations?.relations;
+
+      // Add requiredCards if selected
+      if (newSets.includes("requiredCards") && relations?.requiredCards) {
+        for (const { card } of relations.requiredCards) {
+          let quantity = card.quantity ?? 1;
+          if (card.code === SPECIAL_CARD_CODES.OCCULT_EVIDENCE) {
+            const backCard = metadata.cards[backCardCode];
+            const baseDeckSize = backCard?.deck_requirements?.size ?? 30;
+            quantity = Math.max(1, Math.floor((baseDeckSize - 20) / 10));
+          }
+          signatureCards[card.code] = quantity;
+        }
+      }
+
+      // Add advanced if selected (mutually exclusive with requiredCards)
+      if (newSets.includes("advanced") && relations?.advanced) {
+        for (const { card } of relations.advanced) {
+          signatureCards[card.code] = card.quantity ?? 1;
+        }
+      }
+
+      // Add replacement if selected
+      if (newSets.includes("replacement") && relations?.replacement) {
+        for (const { card } of relations.replacement) {
+          signatureCards[card.code] = card.quantity ?? 1;
+        }
+      }
+
+      // Always add random basic weakness
+      const backCard = metadata.cards[backCardCode];
+      const randomWeaknessCount =
+        backCard?.deck_requirements?.random?.length ?? 1;
+      signatureCards[SPECIAL_CARD_CODES.RANDOM_BASIC_WEAKNESS] =
+        randomWeaknessCount;
+
+      return {
+        draft: {
+          ...draft,
+          sets: newSets,
+          signatureCards,
+        },
+      };
+    });
+  },
+
+  draftSetSkipsAllowed(value) {
+    set((state) => {
+      assert(state.draft, "Draft must be initialized.");
+      return {
+        draft: {
+          ...state.draft,
+          skipsAllowed: value,
+        },
+      };
+    });
+  },
+
+  skipDraftStep() {
+    const state = get();
+    assert(state.draft, "Draft must be initialized.");
+    const draft = state.draft;
+
+    // Check if skips are available
+    if (draft.skipsUsed >= draft.skipsAllowed) {
+      return;
+    }
+
+    // Increment skips used and generate new options
+    set({
+      draft: {
+        ...draft,
+        skipsUsed: draft.skipsUsed + 1,
+      },
+    });
+
+    // Generate new options (skip the current ones)
+    get().generateDraftOptions();
   },
 });

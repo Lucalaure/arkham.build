@@ -9,14 +9,21 @@ import {
   makeOptionFilter,
 } from "@/store/lib/filtering";
 import { resolveCardWithRelations } from "@/store/lib/resolve-card";
-import type { CardWithRelations, SealedDeck } from "@/store/lib/types";
+import type {
+  CardSet,
+  CardWithRelations,
+  ResolvedCard,
+  SealedDeck,
+} from "@/store/lib/types";
 import type { Card, DeckOption } from "@/store/schemas/card.schema";
 import type { StoreState } from "@/store/slices";
 import { assert } from "@/utils/assert";
 import { cardLimit, realCardLevel } from "@/utils/card-utils";
 import { SPECIAL_CARD_CODES } from "@/utils/constants";
 import { currentEnvironmentPacks } from "@/utils/environments";
+import { formatRelationTitle } from "@/utils/formatting";
 import { and, or } from "@/utils/fp";
+import i18n from "@/utils/i18n";
 import {
   selectCollection,
   selectLocaleSortingCollator,
@@ -223,6 +230,12 @@ export const selectDraftCardPool = createSelector(
         applyCardChanges(c, metadata, tabooSetId, undefined),
       );
     }
+
+    // Filter out forbidden cards (cards with "Forbidden." in their text after taboo changes)
+    filters.push((c: Card) => {
+      // Check if card is forbidden by taboo - forbidden cards have "Forbidden." in their real_text
+      return !c.real_text?.includes("Forbidden.");
+    });
 
     return filteredCards.filter(and(filters));
   },
@@ -524,6 +537,94 @@ export const selectSignatureCards = createSelector(
       randomWeaknessCount;
 
     return signatureCards;
+  },
+);
+
+export const selectDraftCardSets = createSelector(
+  selectMetadata,
+  selectLookupTables,
+  selectLocaleSortingCollator,
+  selectDraftChecked,
+  selectDraftInvestigators,
+  (metadata, lookupTables, collator, draft, investigators) => {
+    const groupings: CardSet[] = [];
+
+    const { back, investigator } = investigators;
+    const { relations } = investigator;
+
+    if (relations?.advanced?.length) {
+      groupings.push({
+        id: "advanced",
+        title: formatRelationTitle("advanced"),
+        canSelect: true,
+        cards: relations.advanced,
+        selected: draft.sets.includes("advanced"),
+        quantities: relations.advanced.reduce(
+          (acc, { card }) => {
+            acc[card.code] = card.quantity;
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
+        help: i18n.t("deck_create.help_advanced"),
+      });
+    }
+
+    if (relations?.replacement?.length) {
+      groupings.push({
+        id: "replacement",
+        title: formatRelationTitle("replacement"),
+        canSelect: true,
+        cards: relations.replacement,
+        selected: draft.sets.includes("replacement"),
+        quantities: relations.replacement.reduce(
+          (acc, { card }) => {
+            acc[card.code] = card.quantity;
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
+        help: i18n.t("deck_create.help_replacements"),
+      });
+    }
+
+    if (relations?.requiredCards) {
+      groupings.unshift({
+        id: "requiredCards",
+        canSelect: true,
+        cards: relations.requiredCards,
+        title: formatRelationTitle("requiredCards"),
+        selected: draft.sets.includes("requiredCards"),
+        quantities: relations.requiredCards.reduce(
+          (acc, { card }) => {
+            acc[card.code] = card.quantity;
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
+      });
+    }
+
+    groupings.unshift({
+      id: "random_basic_weakness",
+      title: i18n.t("deck_create.random_basic_weakness"),
+      canSelect: false,
+      selected: true,
+      cards: [
+        resolveCardWithRelations(
+          { metadata, lookupTables },
+          collator,
+          SPECIAL_CARD_CODES.RANDOM_BASIC_WEAKNESS,
+          undefined,
+        ) as ResolvedCard,
+      ],
+      quantities: {
+        [SPECIAL_CARD_CODES.RANDOM_BASIC_WEAKNESS]:
+          back.card.deck_requirements?.random?.length ?? 1,
+      },
+    });
+
+    return groupings;
   },
 );
 
@@ -868,7 +969,7 @@ export const selectLegalCustomizableCards = createSelector(
     _lookupTables,
     cardPool,
     investigatorCode,
-    pickedCards,
+    _pickedCards,
     _additionalDeckOptions,
   ) => {
     const investigator = metadata.cards[investigatorCode];
