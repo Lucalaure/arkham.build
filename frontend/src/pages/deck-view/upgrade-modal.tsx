@@ -20,7 +20,10 @@ import { useToast } from "@/components/ui/toast.hooks";
 import { useStore } from "@/store";
 import type { ResolvedDeck } from "@/store/lib/types";
 import type { Card } from "@/store/schemas/card.schema";
-import { selectConnectionLockForDeck } from "@/store/selectors/shared";
+import {
+  selectConnectionLockForDeck,
+  selectMetadata,
+} from "@/store/selectors/shared";
 import { decodeExileSlots, displayAttribute } from "@/utils/card-utils";
 import { SPECIAL_CARD_CODES } from "@/utils/constants";
 import { isEmpty } from "@/utils/is-empty";
@@ -89,7 +92,68 @@ export function UpgradeModal(props: Props) {
   );
   const [cardsPerPick, setCardsPerPick] = useState(5);
   const [skipsAllowed, setSkipsAllowed] = useState(0);
+  const [researchedCards, setResearchedCards] = useState<Set<string>>(
+    new Set(),
+  );
   const isDraftDeck = deck.metaParsed?.is_draft === true;
+
+  const metadata = useStore(selectMetadata);
+
+  // Find base cards for researched upgrades
+  // Only include base cards that exist in the deck
+  const researchedBaseCards = useMemo(() => {
+    if (!isDraftDeck) return [];
+
+    const baseCardsMap = new Map<
+      string,
+      { card: Card; researchedUpgrades: Card[] }
+    >();
+
+    // Check all cards in metadata to find researched cards
+    for (const card of Object.values(metadata.cards)) {
+      // Check if this card has "Researched." in its text
+      if (card.real_text?.includes("Researched.")) {
+        // Find the base version (same real_name without "Researched." text)
+        const baseCard = Object.values(metadata.cards).find(
+          (c) =>
+            c.real_name === card.real_name &&
+            !c.real_text?.includes("Researched."),
+        );
+
+        if (baseCard) {
+          // Only include base cards that exist in the deck
+          if (deck.slots[baseCard.code] && deck.slots[baseCard.code] > 0) {
+            // Get or create entry for this base card
+            if (!baseCardsMap.has(baseCard.code)) {
+              baseCardsMap.set(baseCard.code, {
+                card: baseCard,
+                researchedUpgrades: [],
+              });
+            }
+            // Add this researched upgrade
+            const entry = baseCardsMap.get(baseCard.code);
+            if (entry) {
+              entry.researchedUpgrades.push(card);
+            }
+          }
+        }
+      }
+    }
+
+    return Array.from(baseCardsMap.values());
+  }, [deck.slots, metadata, isDraftDeck]);
+
+  const handleResearchedToggle = useCallback((cardCode: string) => {
+    setResearchedCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(cardCode)) {
+        next.delete(cardCode);
+      } else {
+        next.add(cardCode);
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const url = new URL(window.location.toString());
@@ -140,6 +204,11 @@ export function UpgradeModal(props: Props) {
           cards_per_pick: cardsPerPick.toString(),
           skips_allowed: skipsAllowed.toString(),
         });
+
+        // Add researched cards as comma-separated list
+        if (researchedCards.size > 0) {
+          params.set("researched", Array.from(researchedCards).join(","));
+        }
         if (exileString) {
           params.set("exile", exileString);
         }
@@ -200,6 +269,7 @@ export function UpgradeModal(props: Props) {
       isDraftDeck,
       cardsPerPick,
       skipsAllowed,
+      researchedCards,
       t,
     ],
   );
@@ -404,6 +474,55 @@ export function UpgradeModal(props: Props) {
                     </output>
                   </div>
                 </Field>
+                {researchedBaseCards.length > 0 && (
+                  <Field full padded>
+                    <FieldLabel>
+                      {t("deck_view.upgrade_modal.researched_cards")}
+                    </FieldLabel>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "0.5rem",
+                      }}
+                    >
+                      {researchedBaseCards.map(
+                        ({ card, researchedUpgrades }) => (
+                          <Checkbox
+                            key={card.code}
+                            checked={researchedCards.has(card.code)}
+                            id={`researched-${card.code}`}
+                            label={
+                              <>
+                                {displayAttribute(card, "name")}
+                                <span
+                                  style={{
+                                    fontSize: "var(--text-sm)",
+                                    opacity: 0.7,
+                                  }}
+                                >
+                                  {" "}
+                                  ({researchedUpgrades.length}{" "}
+                                  {researchedUpgrades.length === 1
+                                    ? t(
+                                        "deck_view.upgrade_modal.researched_upgrade",
+                                      )
+                                    : t(
+                                        "deck_view.upgrade_modal.researched_upgrades",
+                                      )}
+                                  )
+                                </span>
+                              </>
+                            }
+                            onCheckedChange={() =>
+                              handleResearchedToggle(card.code)
+                            }
+                          />
+                        ),
+                      )}
+                    </div>
+                  </Field>
+                )}
               </>
             )}
             {hasGreatWork && (

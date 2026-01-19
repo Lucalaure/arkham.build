@@ -47,6 +47,7 @@ export type DraftState = {
   customizationUpgrades?: Record<string, Record<number, number>>; // cardCode -> optionIndex -> xp_spent
   skipsAllowed: number;
   skipsUsed: number;
+  researchedCards: string[]; // Array of level 0 card codes that have been researched
 };
 
 export type DraftSlice = {
@@ -72,6 +73,7 @@ export type DraftSlice = {
   draftSetSealed: (payload: SealedDeck | undefined) => void;
   draftSetCardsPerPick: (value: number) => void;
   draftSetSkipsAllowed: (value: number) => void;
+  draftSetResearchedCards: (cards: string[]) => void;
   draftToggleCardSet: (value: string) => void;
   generateDraftOptions: () => void;
   pickDraftCard: (code: string, quantity?: number) => void;

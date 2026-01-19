@@ -1093,6 +1093,9 @@
         "great_work_status_usurped": "The Great Work will be removed from your deck alongside each of your signature cards. Your investigator will be replaced with the homunculus.",
         "loading": "Upgrading deck",
         "remaining_xp": "{{count}} XP remaining from previous upgrade",
+        "researched_cards": "Researched cards",
+        "researched_upgrade": "researched upgrade",
+        "researched_upgrades": "researched upgrades",
         "title": "Upgrade deck with XP",
         "xp_gained": "XP gained"
       }

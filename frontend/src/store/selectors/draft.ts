@@ -116,6 +116,7 @@ export const selectDraftCardPool = createSelector(
       _tabooSetId: number | undefined,
       remainingXp: number | undefined,
     ) => remainingXp,
+    (state: StoreState) => state.draft?.researchedCards ?? [],
   ],
   (
     metadata,
@@ -129,6 +130,7 @@ export const selectDraftCardPool = createSelector(
     sealed: SealedDeck | undefined,
     tabooSetId: number | undefined,
     remainingXp: number | undefined,
+    researchedCards: string[],
   ) => {
     const investigator = metadata.cards[investigatorCode];
     if (!investigator) return [];
@@ -236,6 +238,32 @@ export const selectDraftCardPool = createSelector(
       // Check if card is forbidden by taboo - forbidden cards have "Forbidden." in their real_text
       return !c.real_text?.includes("Forbidden.");
     });
+
+    // Filter out researched upgrades if the base card hasn't been researched
+    // Only apply this filter in upgrade mode
+    // Always filter out researched cards unless their base is selected
+    if (remainingXp !== undefined && remainingXp > 0) {
+      filters.push((c: Card) => {
+        // Check if this card has "Researched." in its text
+        if (!c.real_text?.includes("Researched.")) {
+          return true; // Not a researched card, allow it
+        }
+
+        // This is a researched card - find the base version (same real_name without "Researched." text)
+        const baseCard = Object.values(metadata.cards).find(
+          (card) =>
+            card.real_name === c.real_name &&
+            !card.real_text?.includes("Researched."),
+        );
+
+        if (!baseCard) {
+          return false; // Base card not found, exclude it
+        }
+
+        // Only allow researched cards if their base card is in the researched cards list
+        return researchedCards.includes(baseCard.code);
+      });
+    }
 
     return filteredCards.filter(and(filters));
   },

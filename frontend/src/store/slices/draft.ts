@@ -216,6 +216,7 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
           customizationUpgrades: {},
           skipsAllowed: 0,
           skipsUsed: 0,
+          researchedCards: [],
         },
       };
     });
@@ -352,6 +353,7 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
           customizationUpgrades,
           skipsAllowed: 0,
           skipsUsed: 0,
+          researchedCards: [],
         },
       };
     });
@@ -957,6 +959,18 @@ export const createDraftSlice: StateCreator<StoreState, [], [], DraftSlice> = (
         draft: {
           ...state.draft,
           skipsAllowed: value,
+        },
+      };
+    });
+  },
+
+  draftSetResearchedCards(cards) {
+    set((state) => {
+      assert(state.draft, "Draft must be initialized.");
+      return {
+        draft: {
+          ...state.draft,
+          researchedCards: cards,
         },
       };
     });

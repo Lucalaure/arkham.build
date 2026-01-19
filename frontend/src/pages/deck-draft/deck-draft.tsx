@@ -55,6 +55,9 @@ function DeckDraft() {
   const initDraft = useStore((state) => state.initDraft);
   const initUpgradeDraft = useStore((state) => state.initUpgradeDraft);
   const draftSetSkipsAllowed = useStore((state) => state.draftSetSkipsAllowed);
+  const draftSetResearchedCards = useStore(
+    (state) => state.draftSetResearchedCards,
+  );
   const resetDraft = useStore((state) => state.resetDraft);
 
   // Initialize draft on mount
@@ -66,6 +69,7 @@ function DeckDraft() {
     const totalAvailableXp = params.get("total_available_xp");
     const cardsPerPick = params.get("cards_per_pick");
     const skipsAllowed = params.get("skips_allowed");
+    const researchedParam = params.get("researched");
 
     // Check if this is an upgrade draft
     if (upgradeDeckId && upgradeXp !== null) {
@@ -96,6 +100,15 @@ function DeckDraft() {
         if (skipsAllowedValue > 0) {
           draftSetSkipsAllowed(skipsAllowedValue);
         }
+        // Set researched cards after initialization
+        if (researchedParam) {
+          const researchedCardsArray = researchedParam
+            .split(",")
+            .filter(Boolean);
+          if (researchedCardsArray.length > 0) {
+            draftSetResearchedCards(researchedCardsArray);
+          }
+        }
         return () => {
           resetDraft();
         };
@@ -119,6 +132,7 @@ function DeckDraft() {
     initUpgradeDraft,
     resetDraft,
     draftSetSkipsAllowed,
+    draftSetResearchedCards,
   ]);
 
   // Create resolved deck at this level so CardModal can access it
@@ -370,6 +384,7 @@ function DeckDraftInner(props: { resolvedDraftDeck: ResolvedDeck }) {
             state.draft.mode === "upgrade"
               ? state.draft.totalXp + (state.draft.previousRemainingXp ?? 0)
               : 0,
+          skipsUsed: 0,
         },
       };
     });
@@ -381,6 +396,7 @@ function DeckDraftInner(props: { resolvedDraftDeck: ResolvedDeck }) {
         draft: {
           ...state.draft,
           ...savedSettings,
+          skipsUsed: 0,
         },
       });
 
