@@ -144,10 +144,7 @@ export function CustomizationUpgradeCard(props: Props) {
       >
         <div className={draftCss["card-image-container"]}>
           {showCustomizableSheet ? (
-            <div
-              onError={() => setImageError(true)}
-              style={{ position: "relative", width: "100%", height: "100%" }}
-            >
+            <div onError={() => setImageError(true)}>
               <CustomizableSheet
                 card={card}
                 deck={deckWithCustomization}
@@ -168,15 +165,10 @@ export function CustomizationUpgradeCard(props: Props) {
       <button
         type="button"
         className={css["customization"]}
-        style={
-          {
-            ...cssVariables,
-            fontSize: "var(--text-xs)",
-          } as React.CSSProperties
-        }
+        style={cssVariables as React.CSSProperties}
         onClick={onPick}
       >
-        <div className={css["checks"]} style={{ pointerEvents: "none" }}>
+        <div className={css["checks"]}>
           {!!option.xp &&
             range(0, option.xp).map((i) => (
               <Checkbox
@@ -189,10 +181,9 @@ export function CustomizationUpgradeCard(props: Props) {
               />
             ))}
         </div>
-        <div className={css["content"]} style={{ fontSize: "inherit" }}>
+        <div className={css["content"]}>
           {htmlText && (
             <p
-              style={{ fontSize: "inherit" }}
               // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML is from trusted source.
               dangerouslySetInnerHTML={{
                 __html: parseCustomizationTextHtml(htmlText),
@@ -202,16 +193,7 @@ export function CustomizationUpgradeCard(props: Props) {
         </div>
       </button>
       {willAddCardCopy && (
-        <p
-          className={draftCss["customization-helper-text"]}
-          style={{
-            fontSize: "var(--text-xs)",
-            marginTop: "0.25rem",
-            fontStyle: "italic",
-            textAlign: "left",
-            padding: "0 0.5rem",
-          }}
-        >
+        <p className={draftCss["customization-helper-text"]}>
           {t("deck_draft.customization.will_add_card_copy")}
         </p>
       )}

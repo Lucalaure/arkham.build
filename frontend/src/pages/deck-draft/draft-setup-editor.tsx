@@ -253,7 +253,7 @@ export function DraftSetupEditor(props: Props) {
         <FieldLabel htmlFor="cards-per-pick">
           {t("deck_draft.setup.cards_per_pick")}
         </FieldLabel>
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+        <div className={css["slider-container"]}>
           <Slider
             id="cards-per-pick"
             min={2}
@@ -261,16 +261,9 @@ export function DraftSetupEditor(props: Props) {
             step={1}
             value={[draft.cardsPerPick]}
             onValueChange={(value) => setCardsPerPick(value[0])}
-            style={{ flex: 1 }}
+            className={css["slider-flex"]}
           />
-          <output
-            htmlFor="cards-per-pick"
-            style={{
-              minWidth: "2rem",
-              textAlign: "right",
-              fontWeight: 600,
-            }}
-          >
+          <output htmlFor="cards-per-pick" className={css["slider-output"]}>
             {draft.cardsPerPick}
           </output>
         </div>
@@ -280,7 +273,7 @@ export function DraftSetupEditor(props: Props) {
         <FieldLabel htmlFor="skips-allowed">
           {t("deck_draft.setup.skips_allowed")}
         </FieldLabel>
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+        <div className={css["slider-container"]}>
           <Slider
             id="skips-allowed"
             min={0}
@@ -288,16 +281,9 @@ export function DraftSetupEditor(props: Props) {
             step={1}
             value={[draft.skipsAllowed]}
             onValueChange={(value) => setSkipsAllowed(value[0])}
-            style={{ flex: 1 }}
+            className={css["slider-flex"]}
           />
-          <output
-            htmlFor="skips-allowed"
-            style={{
-              minWidth: "2rem",
-              textAlign: "right",
-              fontWeight: 600,
-            }}
-          >
+          <output htmlFor="skips-allowed" className={css["slider-output"]}>
             {draft.skipsAllowed}
           </output>
         </div>
@@ -305,15 +291,7 @@ export function DraftSetupEditor(props: Props) {
 
       {!canStart && (
         <Field full padded>
-          <div
-            style={{
-              padding: "1rem",
-              background: "var(--palette-error-1)",
-              border: "1px solid var(--palette-error-3)",
-              borderRadius: "var(--rounded)",
-              color: "var(--palette-error-9)",
-            }}
-          >
+          <div className={css["error-message"]}>
             {t("deck_draft.setup.insufficient_cards", { required, available })}
           </div>
         </Field>

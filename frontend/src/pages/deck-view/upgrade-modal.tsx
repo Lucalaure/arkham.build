@@ -414,13 +414,7 @@ export function UpgradeModal(props: Props) {
                   <FieldLabel htmlFor="cards-per-pick">
                     {t("deck_view.upgrade_modal.cards_per_pick")}
                   </FieldLabel>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "1rem",
-                    }}
-                  >
+                  <div className={css["slider-container"]}>
                     <Slider
                       id="cards-per-pick"
                       min={2}
@@ -428,15 +422,11 @@ export function UpgradeModal(props: Props) {
                       step={1}
                       value={[cardsPerPick]}
                       onValueChange={(value) => setCardsPerPick(value[0])}
-                      style={{ flex: 1 }}
+                      className={css["slider-flex"]}
                     />
                     <output
                       htmlFor="cards-per-pick"
-                      style={{
-                        minWidth: "2rem",
-                        textAlign: "right",
-                        fontWeight: 600,
-                      }}
+                      className={css["slider-output"]}
                     >
                       {cardsPerPick}
                     </output>
@@ -446,13 +436,7 @@ export function UpgradeModal(props: Props) {
                   <FieldLabel htmlFor="skips-allowed">
                     {t("deck_draft.setup.skips_allowed")}
                   </FieldLabel>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "1rem",
-                    }}
-                  >
+                  <div className={css["slider-container"]}>
                     <Slider
                       id="skips-allowed"
                       min={0}
@@ -460,15 +444,11 @@ export function UpgradeModal(props: Props) {
                       step={1}
                       value={[skipsAllowed]}
                       onValueChange={(value) => setSkipsAllowed(value[0])}
-                      style={{ flex: 1 }}
+                      className={css["slider-flex"]}
                     />
                     <output
                       htmlFor="skips-allowed"
-                      style={{
-                        minWidth: "2rem",
-                        textAlign: "right",
-                        fontWeight: 600,
-                      }}
+                      className={css["slider-output"]}
                     >
                       {skipsAllowed}
                     </output>
@@ -479,13 +459,7 @@ export function UpgradeModal(props: Props) {
                     <FieldLabel>
                       {t("deck_view.upgrade_modal.researched_cards")}
                     </FieldLabel>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "0.5rem",
-                      }}
-                    >
+                    <div className={css["researched-list"]}>
                       {researchedBaseCards.map(
                         ({ card, researchedUpgrades }) => (
                           <Checkbox
@@ -495,12 +469,7 @@ export function UpgradeModal(props: Props) {
                             label={
                               <>
                                 {displayAttribute(card, "name")}
-                                <span
-                                  style={{
-                                    fontSize: "var(--text-sm)",
-                                    opacity: 0.7,
-                                  }}
-                                >
+                                <span className={css["researched-count"]}>
                                   {" "}
                                   ({researchedUpgrades.length}{" "}
                                   {researchedUpgrades.length === 1
