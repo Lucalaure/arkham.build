@@ -24,6 +24,7 @@ import {
 } from "@/store/selectors/shared";
 import {
   cardUrl,
+  deckCreateLink,
   displayAttribute,
   isStaticInvestigator,
   oldFormatCardUrl,
@@ -88,10 +89,7 @@ function CardView() {
               </CardArkhamDBLink>
               <CardReviewsLink card={cardWithRelations.card} size="full" />
               {isBuildableInvestigator && (
-                <Link
-                  asChild
-                  href={`/deck/create/${cardWithRelations.card.code}`}
-                >
+                <Link asChild href={deckCreateLink(cardWithRelations.card)}>
                   <Button
                     as="a"
                     data-testid="card-modal-create-deck"

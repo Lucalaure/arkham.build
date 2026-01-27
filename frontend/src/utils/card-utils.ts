@@ -2,6 +2,7 @@ import type { TFunction } from "i18next";
 import type { Card } from "@/store/schemas/card.schema";
 import type { Cycle } from "@/store/schemas/cycle.schema";
 import type { Pack } from "@/store/schemas/pack.schema";
+import { assert } from "./assert";
 import {
   CYCLES_WITH_STANDALONE_PACKS,
   ORIENTATION_CHANGED_CARDS,
@@ -301,4 +302,15 @@ export function doubleSidedBackCard(card: Card, t: TFunction) {
       displayAttribute(card, "back_traits") || displayAttribute(card, "traits"),
     real_traits: card.real_back_traits || card.real_traits,
   };
+}
+
+export function deckCreateLink(card: Card) {
+  assert(
+    card.type_code === "investigator",
+    "only investigators can create decks",
+  );
+
+  return card.parallel
+    ? `/deck/create/${card.alternate_of_code}?initial_investigator=${card.code}`
+    : `/deck/create/${card.code}`;
 }

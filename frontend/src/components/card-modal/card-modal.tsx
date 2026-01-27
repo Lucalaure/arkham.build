@@ -15,6 +15,7 @@ import { selectShowFanMadeRelations } from "@/store/selectors/shared";
 import type { CardModalConfig } from "@/store/slices/ui.types";
 import {
   canShowCardPoolExtension,
+  deckCreateLink,
   isSpecialist,
   isStaticInvestigator,
 } from "@/utils/card-utils";
@@ -229,11 +230,7 @@ export function CardModal(props: Props) {
             !isStaticInvestigator(cardWithRelations.card) && (
               <Link
                 asChild
-                href={
-                  cardWithRelations.card.parallel
-                    ? `/deck/create/${cardWithRelations.card.alternate_of_code}?initial_investigator=${cardWithRelations.card.code}`
-                    : `/deck/create/${cardWithRelations.card.code}`
-                }
+                href={deckCreateLink(cardWithRelations.card)}
                 onClick={onCloseModal}
               >
                 <Button as="a" data-testid="card-modal-create-deck">
