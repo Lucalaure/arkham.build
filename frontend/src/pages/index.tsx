@@ -39,13 +39,12 @@ function Index() {
         >
           {(props) => <CardListContainer {...props} />}
         </ListLayout>
-        <PreviewBanner />
       </ListLayoutContextProvider>
     </CardModalProvider>
   );
 }
 
-function PreviewBanner() {
+function _PreviewBanner() {
   const seen = useStore(
     (state) => state.settings.flags?.["seen-core-2026-val-reveal"],
   );
