@@ -465,6 +465,12 @@ back:subname != null & back:subname != subname
     ]
   },
   {
+    aliases: ["sg"],
+    name: "stage",
+    lookup: backResolver((card) => card.stage ?? null),
+    type: "number",
+  },
+  {
     "name": "subname",
     "type": "string",
     "aliases": [

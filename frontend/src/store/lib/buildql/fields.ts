@@ -366,6 +366,12 @@ const fieldDefinitions: FieldDefinition[] = [
     type: "string",
   },
   {
+    aliases: ["sg"],
+    name: "stage",
+    lookup: backResolver((card) => card.stage ?? null),
+    type: "number",
+  },
+  {
     aliases: ["st"],
     legacyAlias: "b",
     lookup: backResolver((card, { i18n }) => {
