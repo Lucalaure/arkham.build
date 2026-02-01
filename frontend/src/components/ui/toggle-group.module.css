@@ -28,9 +28,9 @@
 }
 
 .item {
-  --background-inactive: var(--palette-point-five);
-  --background-hover: var(--palette-1);
-  --background-active: var(--palette-2);
+  --background-inactive: var(--palette-1);
+  --background-hover: var(--palette-2);
+  --background-active: var(--palette-3);
   --color-border: var(--palette-2);
   --active-color: var(--palette-6);
 

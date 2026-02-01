@@ -154,10 +154,10 @@
   }
 
   &:not(:hover) .header {
-    background: var(--palette-point-five);
+    background: var(--palette-1);
     color: var(--text);
     text-shadow: none;
-    border-bottom: 1px solid var(--palette-1);
+    border-bottom: 1px solid var(--palette-2);
   }
 }
 
