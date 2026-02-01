@@ -180,393 +180,131 @@ back:subname != null & back:subname != subname
 ```
 
 ## Fields
-```json
-[
-  {
-    "name": "agility",
-    "type": "number",
-    "aliases": [
-      "ag",
-      "foot"
-    ],
-    "legacyAlias": "a"
-  },
-    {
-    aliases: ["bo"],
-    name: "bonded",
-    type: "boolean",
-  },
-  {
-    aliases: ["ch"],
-    name: "chapter",
-    type: "number",
-  },
-  {
-    "name": "clues",
-    "type": "number",
-    "aliases": [
-      "cl"
-    ]
-  },
-  {
-    "name": "combat",
-    "type": "number",
-    "aliases": [
-      "cb",
-      "fist"
-    ],
-    "legacyAlias": "c"
-  },
-  {
-    "name": "cost",
-    "type": "number",
-    "aliases": [
-      "co"
-    ],
-    "legacyAlias": "o"
-  },
-  {
-    "name": "customizable",
-    "type": "boolean",
-    "aliases": [
-      "cus"
-    ]
-  },
-  {
-    "name": "cycle",
-    "type": "string",
-    "aliases": [
-      "cy"
-    ],
-    "legacyAlias": "y"
-  },
-  {
-    "name": "damage",
-    "type": "number",
-    "aliases": [
-      "dmg"
-    ]
-  },
-  {
-    "name": "deck_limit",
-    "type": "number",
-    "aliases": [
-      "dl",
-      "limit"
-    ]
-  },
-  {
-    "name": "doom",
-    "type": "number",
-    "aliases": [
-      "do"
-    ]
-  },
-  {
-    "name": "encounter_set",
-    "type": "string",
-    "aliases": [
-      "en",
-      "encounter",
-      "set"
-    ]
-  },
-  {
-    "name": "evade",
-    "type": "number",
-    "aliases": [
-      "ev"
-    ]
-  },
-  {
-    "name": "exceptional",
-    "type": "boolean",
-    "aliases": [
-      "ex"
-    ]
-  },
-  {
-    "name": "exile",
-    "type": "boolean",
-    "aliases": [
-      "exl"
-    ]
-  },
-    {
-    "name": "faction",
-    "type": "string",
-    "aliases": [
-      "cls",
-      "class"
-    ],
-    "legacyAlias": "f"
-  },
-  {
-    "name": "fight",
-    "type": "number",
-    "aliases": [
-      "fi"
-    ]
-  },
-  {
-    "name": "flavor",
-    "type": "text",
-    "aliases": [
-      "fl"
-    ],
-    "legacyAlias": "v"
-  },
-  {
-    "name": "heals_damage",
-    "type": "boolean",
-    "aliases": [
-      "hd"
-    ]
-  },
-  {
-    "name": "heals_horror",
-    "type": "boolean",
-    "aliases": [
-      "hh"
-    ]
-  },
-  {
-    "name": "health",
-    "type": "number",
-    "aliases": [
-      "hp"
-    ],
-    "legacyAlias": "h"
-  },
-  {
-    "name": "horror",
-    "type": "number",
-    "aliases": [
-      "ho"
-    ]
-  },
-  {
-    "name": "id",
-    "type": "string",
-    "aliases": [
-      "code"
-    ]
-  },
-  {
-    "name": "illustrator",
-    "type": "string",
-    "aliases": [
-      "il",
-      "illu",
-      "artist"
-    ],
-    "legacyAlias": "l"
-  },
-  {
-    "name": "intellect",
-    "type": "number",
-    "aliases": [
-      "in",
-      "int",
-      "book"
-    ],
-    "legacyAlias": "i"
-  },
-  {
-    "name": "investigator_access",
-    "type": "string",
-    "aliases": [
-      "ia",
-    ],
-    "legacyAlias": "do"
-  },
-  {
-    "name": "in_deck",
-    "type": "number"
-  },
-  {
-    "name": "multiclass",
-    "type": "boolean",
-    "aliases": [
-      "mu",
-      "multi"
-    ]
-  },
-  {
-    "name": "myriad",
-    "type": "boolean",
-    "aliases": [
-      "my"
-    ]
-  },
-  {
-    "name": "name",
-    "type": "string",
-    "aliases": [
-      "na"
-    ]
-  },
-  {
-    "name": "pack",
-    "type": "string",
-    "aliases": [
-      "pa"
-    ],
-    "legacyAlias": "e"
-  },
-  {
-    "name": "permanent",
-    "type": "boolean",
-    "aliases": [
-      "pe",
-      "perm"
-    ]
-  },
-  {
-    "name": "quantity",
-    "type": "number",
-    "aliases": [
-      "qt",
-      "qty"
-    ]
-  },
-  {
-    "name": "reverse_type",
-    "type": "string",
-    "aliases": [
-      "rt"
-    ]
-  },
-  {
-    "name": "sanity",
-    "type": "number",
-    "aliases": [
-      "sa"
-    ],
-    "legacyAlias": "s"
-  },
-  {
-    "name": "shroud",
-    "type": "number",
-    "aliases": [
-      "sh"
-    ]
-  },
-  {
-    "name": "slot",
-    "type": "string",
-    "aliases": [
-      "sl"
-    ],
-    "legacyAlias": "z"
-  },
-  {
-    "name": "specialist",
-    "type": "boolean",
-    "aliases": [
-      "sp"
-    ]
-  },
-  {
-    aliases: ["sg"],
-    name: "stage",
-    type: "number",
-  },
-  {
-    "name": "subname",
-    "type": "string",
-    "aliases": [
-      "sn"
-    ]
-  },
-  {
-    "name": "subtype",
-    "type": "string",
-    "aliases": [
-      "st"
-    ],
-    "legacyAlias": "b"
-  },
-  {
-    "name": "taboo_set",
-    "type": "string",
-    "aliases": [
-      "ts"
-    ]
-  },
-  {
-    "name": "text",
-    "type": "text",
-    "aliases": [
-      "txt"
-    ],
-    "legacyAlias": "x"
-  },
-  {
-    "name": "trait",
-    "type": "string",
-    "aliases": [
-      "tr"
-    ],
-    "legacyAlias": "k"
-  },
-  {
-    "name": "type",
-    "type": "string",
-    "aliases": [
-      "ty"
-    ],
-    "legacyAlias": "t"
-  },
-  {
-    "name": "unique",
-    "type": "boolean",
-    "aliases": [
-      "un"
-    ],
-    "legacyAlias": "u"
-  },
-  {
-    "name": "vengeance",
-    "type": "number",
-    "aliases": [
-      "ve"
-    ]
-  },
-  {
-    "name": "victory",
-    "type": "number",
-    "aliases": [
-      "vp"
-    ],
-    "legacyAlias": "j"
-  },
-  {
-    "name": "wild",
-    "type": "number",
-    "aliases": [
-      "wd"
-    ],
-    "legacyAlias": "d"
-  },
-  {
-    "name": "willpower",
-    "type": "number",
-    "aliases": [
-      "wp",
-      "will",
-      "brain"
-    ],
-    "legacyAlias": "w"
-  },
-    {
-    "name": "xp",
-    "type": "number",
-    "aliases": [
-      "level",
-      "lvl"
-    ],
-    "legacyAlias": "p"
-  }
-]
-```
+
+- **agility** (number)
+  - aliases: `ag`, `foot`
+  - legacy alias: `a`
+- **bonded** (boolean)
+  - aliases: `bo`
+- **chapter** (number)
+  - aliases: `ch`
+- **clues** (number)
+  - aliases: `cl`
+- **combat** (number)
+  - aliases: `cb`, `fist`
+  - legacy alias: `c`
+- **cost** (number)
+  - aliases: `co`
+  - legacy alias: `o`
+- **customizable** (boolean)
+  - aliases: `cus`
+- **cycle** (string)
+  - aliases: `cy`
+  - legacy alias: `y`
+- **damage** (number)
+  - aliases: `dmg`
+- **deck_limit** (number)
+  - aliases: `dl`, `limit`
+- **doom** (number)
+  - aliases: `do`
+- **encounter_set** (string)
+  - aliases: `en`, `encounter`, `set`
+- **evade** (number)
+  - aliases: `ev`
+- **exceptional** (boolean)
+  - aliases: `ex`
+- **exile** (boolean)
+  - aliases: `exl`
+- **faction** (string)
+  - aliases: `cls`, `class`
+  - legacy alias: `f`
+- **fight** (number)
+  - aliases: `fi`
+- **flavor** (text)
+  - aliases: `fl`
+  - legacy alias: `v`
+- **has_upgrade** (boolean)
+  - aliases: `hu`
+- **heals_damage** (boolean)
+  - aliases: `hd`
+- **heals_horror** (boolean)
+  - aliases: `hh`
+- **health** (number)
+  - aliases: `hp`
+  - legacy alias: `h`
+- **horror** (number)
+  - aliases: `ho`
+- **id** (string)
+  - aliases: `code`
+- **illustrator** (string)
+  - aliases: `il`, `illu`
+  - legacy alias: `l`
+- **intellect** (number)
+  - aliases: `in`, `int`, `book`
+  - legacy alias: `i`
+- **investigator_access** (string)
+  - aliases: `ia`
+  - legacy alias: `do`
+- **in_deck** (number)
+- **is_upgrade** (boolean)
+  - aliases: `iu`
+- **multiclass** (boolean)
+  - aliases: `mu`, `multi`
+- **myriad** (boolean)
+  - aliases: `my`
+- **name** (string)
+  - aliases: `na`
+- **pack** (string)
+  - aliases: `pa`
+  - legacy alias: `e`
+- **permanent** (boolean)
+  - aliases: `pe`, `perm`
+- **quantity** (number)
+  - aliases: `qt`, `qty`
+- **reverse_type** (string)
+  - aliases: `rt`
+- **sanity** (number)
+  - aliases: `sa`
+  - legacy alias: `s`
+- **shroud** (number)
+  - aliases: `sh`
+- **slot** (string)
+  - aliases: `sl`
+  - legacy alias: `z`
+- **specialist** (boolean)
+  - aliases: `sp`
+- **stage** (number)
+  - aliases: `sg`
+- **subname** (string)
+  - aliases: `sn`
+- **subtype** (string)
+  - aliases: `st`
+  - legacy alias: `b`
+- **taboo_set** (string)
+  - aliases: `ts`
+- **text** (text)
+  - aliases: `txt`
+  - legacy alias: `x`
+- **trait** (string)
+  - aliases: `tr`
+  - legacy alias: `k`
+- **type** (string)
+  - aliases: `ty`
+  - legacy alias: `t`
+- **unique** (boolean)
+  - aliases: `un`
+  - legacy alias: `u`
+- **vengeance** (number)
+  - aliases: `ve`
+- **victory** (number)
+  - aliases: `vp`
+  - legacy alias: `j`
+- **wild** (number)
+  - aliases: `wd`
+  - legacy alias: `d`
+- **willpower** (number)
+  - aliases: `wp`, `will`, `brain`
+  - legacy alias: `w`
+- **xp** (number)
+  - aliases: `level`, `lvl`
+  - legacy alias: `p`

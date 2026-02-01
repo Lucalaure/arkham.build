@@ -1,7 +1,7 @@
 import type { i18n, TFunction } from "i18next";
 import { beforeAll, describe, expect, test } from "vitest";
 import type { Card } from "@/store/schemas/card.schema";
-import { selectMetadata } from "@/store/selectors/shared";
+import { selectLookupTables, selectMetadata } from "@/store/selectors/shared";
 import { getMockStore } from "@/test/get-mock-store";
 import { fields } from "./fields";
 import { Interpreter } from "./interpreter";
@@ -43,6 +43,7 @@ describe("Interpreter", () => {
           t: ((key: string) => key) as TFunction,
         } as i18n,
         metadata: selectMetadata(mockStore.getState()),
+        lookupTables: selectLookupTables(mockStore.getState()),
       },
     };
   });

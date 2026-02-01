@@ -50,12 +50,6 @@ const fieldDefinitions: FieldDefinition[] = [
     type: "boolean",
   },
   {
-    aliases: ["cl"],
-    lookup: backResolver((card) => card.clues ?? null),
-    name: "clues",
-    type: "number",
-  },
-  {
     aliases: ["ch"],
     name: "chapter",
     lookup: backResolver((card, { metadata }) => {
@@ -63,6 +57,12 @@ const fieldDefinitions: FieldDefinition[] = [
       if (!pack?.chapter) return 1;
       return pack.chapter;
     }),
+    type: "number",
+  },
+  {
+    aliases: ["cl"],
+    lookup: backResolver((card) => card.clues ?? null),
+    name: "clues",
     type: "number",
   },
   {
@@ -190,6 +190,18 @@ const fieldDefinitions: FieldDefinition[] = [
     type: "text",
   },
   {
+    aliases: ["hu"],
+    lookup: backResolver((card, { lookupTables, metadata }) => {
+      const otherLevels = lookupTables.relations.level[card.code];
+      const hasUpgrade = Object.keys(otherLevels ?? {}).some(
+        (otherCode) => (metadata.cards[otherCode]?.xp ?? 0) > (card.xp ?? 0),
+      );
+      return hasUpgrade;
+    }),
+    name: "has_upgrade",
+    type: "boolean",
+  },
+  {
     aliases: ["hd"],
     lookup: backResolver((card) => filterTag("hd", true)(card)),
     name: "heals_damage",
@@ -221,7 +233,7 @@ const fieldDefinitions: FieldDefinition[] = [
     type: "string",
   },
   {
-    aliases: ["il", "illu", "artist"],
+    aliases: ["il", "illu"],
     legacyAlias: "l",
     lookup: backResolver((card) => card.illustrator ?? null),
     name: "illustrator",
@@ -273,12 +285,18 @@ const fieldDefinitions: FieldDefinition[] = [
     type: "number",
   },
   {
-    aliases: ["level", "lvl"],
-    legacyAlias: "p",
-    lookup: backResolver((card) => card.xp ?? null),
-    name: "xp",
-    type: "number",
+    aliases: ["iu"],
+    lookup: backResolver((card, { lookupTables, metadata }) => {
+      const otherLevels = lookupTables.relations.level[card.code];
+      const upgraded = Object.keys(otherLevels ?? {}).some(
+        (otherCode) => (metadata.cards[otherCode]?.xp ?? 0) < (card.xp ?? 0),
+      );
+      return upgraded;
+    }),
+    name: "is_upgrade",
+    type: "boolean",
   },
+
   {
     aliases: ["mu", "multi"],
     lookup: backResolver(
@@ -370,16 +388,16 @@ const fieldDefinitions: FieldDefinition[] = [
     type: "boolean",
   },
   {
-    aliases: ["sn"],
-    lookup: backResolver((card) => displayAttribute(card, "subname")),
-    name: "subname",
-    type: "string",
-  },
-  {
     aliases: ["sg"],
     name: "stage",
     lookup: backResolver((card) => card.stage ?? null),
     type: "number",
+  },
+  {
+    aliases: ["sn"],
+    lookup: backResolver((card) => displayAttribute(card, "subname")),
+    name: "subname",
+    type: "string",
   },
   {
     aliases: ["st"],
@@ -472,6 +490,13 @@ const fieldDefinitions: FieldDefinition[] = [
     legacyAlias: "w",
     lookup: backResolver((card) => card.skill_willpower ?? 0),
     name: "willpower",
+    type: "number",
+  },
+  {
+    aliases: ["level", "lvl"],
+    legacyAlias: "p",
+    lookup: backResolver((card) => card.xp ?? null),
+    name: "xp",
     type: "number",
   },
 ];
