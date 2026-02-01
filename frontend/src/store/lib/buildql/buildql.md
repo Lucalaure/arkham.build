@@ -193,11 +193,14 @@ back:subname != null & back:subname != subname
   },
     {
     aliases: ["bo"],
-    lookup: backResolver((card, { lookupTables }) => !!lookupTables.relations.bonded[card.code]),
     name: "bonded",
     type: "boolean",
   },
-
+  {
+    aliases: ["ch"],
+    name: "chapter",
+    type: "number",
+  },
   {
     "name": "clues",
     "type": "number",
@@ -467,7 +470,6 @@ back:subname != null & back:subname != subname
   {
     aliases: ["sg"],
     name: "stage",
-    lookup: backResolver((card) => card.stage ?? null),
     type: "number",
   },
   {

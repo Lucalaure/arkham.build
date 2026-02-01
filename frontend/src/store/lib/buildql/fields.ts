@@ -56,6 +56,16 @@ const fieldDefinitions: FieldDefinition[] = [
     type: "number",
   },
   {
+    aliases: ["ch"],
+    name: "chapter",
+    lookup: backResolver((card, { metadata }) => {
+      const pack = metadata.packs[card.pack_code];
+      if (!pack?.chapter) return 1;
+      return pack.chapter;
+    }),
+    type: "number",
+  },
+  {
     aliases: ["cb", "fist"],
     legacyAlias: "c",
     lookup: backResolver((card) => card.skill_combat ?? 0),
