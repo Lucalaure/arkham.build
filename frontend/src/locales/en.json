@@ -1135,6 +1135,7 @@
       "content_types": "Content types",
       "content_version": "Content version",
       "empty": "No content installed",
+      "filter_fan_made_content": "Search content...",
       "import_url": {
         "label": "Content URL",
         "placeholder": "Enter an URL...",

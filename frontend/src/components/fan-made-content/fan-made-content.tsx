@@ -143,13 +143,9 @@ export function FanMadeContent(props: SettingProps) {
   return (
     <div className={css["container"]}>
       <DisplaySettings {...props} />
-      <FanMadeSearch search={search} onSearchChange={searchChange} />
-      <Collection
-        onAddProject={onAddProject}
-        listingsQuery={listingsQuery}
-        filterFn={projectFilter}
-      />
+      <Collection onAddProject={onAddProject} listingsQuery={listingsQuery} />
       <Registry
+        action={<FanMadeSearch search={search} onSearchChange={searchChange} />}
         onAddProject={onAddProject}
         listingsQuery={listingsQuery}
         filterFn={projectFilter}
@@ -225,25 +221,23 @@ type SearchProps = {
 };
 
 function FanMadeSearch({ search, onSearchChange }: SearchProps) {
+  const { t } = useTranslation();
+
   return (
-    <search
-      className={cx(css["container"], css["dynamic"])}
-      data-testid="search"
-    >
-      <div>
-        <SearchInput
-          id="fanmade-search-input"
-          value={search}
-          onValueChange={onSearchChange}
-        />
-      </div>
+    <search>
+      <SearchInput
+        placeholder={t("fan_made_content.filter_fan_made_content")}
+        id="fanmade-search-input"
+        value={search}
+        onValueChange={onSearchChange}
+      />
     </search>
   );
 }
 
 type RegistryProps = {
   onAddProject: (payload: unknown) => Promise<void>;
-  filterFn: <T extends Filterable>(
+  filterFn?: <T extends Filterable>(
     projects: T[] | undefined,
   ) => T[] | undefined;
   listingsQuery: UseQueryResult<FanMadeProjectListing[]>;
@@ -253,7 +247,7 @@ function Collection({ onAddProject, listingsQuery, filterFn }: RegistryProps) {
   const { t } = useTranslation();
 
   const owned = useStore(selectOwnedFanMadeProjects);
-  const filteredOwned = filterFn(owned);
+  const filteredOwned = filterFn ? filterFn(owned) : owned;
 
   const { onAddFromRegistry, onAddFromUrl, onAddLocalProject } =
     useProjectRegistry(onAddProject);
@@ -372,9 +366,18 @@ function Collection({ onAddProject, listingsQuery, filterFn }: RegistryProps) {
   );
 }
 
-function Registry({ onAddProject, listingsQuery, filterFn }: RegistryProps) {
+function Registry({
+  action,
+  onAddProject,
+  listingsQuery,
+  filterFn,
+}: RegistryProps & {
+  action?: React.ReactNode;
+}) {
   const { t } = useTranslation();
-  const filteredProjects = filterFn(listingsQuery.data);
+  const filteredProjects = filterFn
+    ? filterFn(listingsQuery.data)
+    : listingsQuery.data;
   const { onAddFromRegistry } = useProjectRegistry(onAddProject);
 
   const owned = useStore((state) => state.fanMadeData.projects);
@@ -385,6 +388,7 @@ function Registry({ onAddProject, listingsQuery, filterFn }: RegistryProps) {
         <h2 className={css["title"]}>
           {t("fan_made_content.available_content")}
         </h2>
+        {action}
       </header>
 
       {!!listingsQuery.error && (
@@ -404,7 +408,7 @@ function Registry({ onAddProject, listingsQuery, filterFn }: RegistryProps) {
         </div>
       )}
 
-      {isEmpty(filteredProjects) && (
+      {!listingsQuery.isPending && isEmpty(filteredProjects) && (
         <div className={css["empty"]} data-testid="registry-placeholder">
           <BookDashedIcon className={css["empty-icon"]} />
           <p className={css["empty-title"]}>
@@ -413,7 +417,7 @@ function Registry({ onAddProject, listingsQuery, filterFn }: RegistryProps) {
         </div>
       )}
 
-      {filteredProjects && (
+      {!listingsQuery.isPending && filteredProjects && (
         <div className={css["list"]}>
           {filteredProjects.map((listing) => {
             const { meta } = listing;
