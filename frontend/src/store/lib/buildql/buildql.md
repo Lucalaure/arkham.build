@@ -48,7 +48,7 @@ trait = /^(spell|ritual)$/
 text = /\d+ damage/
 ```
 
-Regular expressions can be used with all string comparison operators (`=`, `!=`, `?`, `?!`, `==`, `!==`, `??`, `??!`).
+Regular expressions can be used with all string comparison operators (`=`, `!=`, `?`, `!?`, `==`, `!==`, `??`, `!??`).
 
 ## Operators
 
@@ -88,7 +88,7 @@ xp ? [1, 3, 5, 8]
 trait ? ["tactic", "supply"]
 text ? ["fight", "parley"]
 ```
-Inversion: `?!`
+Inversion: `!?`
 
 ### Exact contains (??)
 Same a contains, but using the exact equality check.
@@ -96,7 +96,7 @@ Same a contains, but using the exact equality check.
 ```
 text ?? ["<b>Fight.</b>", "<b>Parley.</b>"]
 ```
-Inversion: `??!`
+Inversion: `!??`
 
 ### Greater Than (>)
 Only applies to numbers.
