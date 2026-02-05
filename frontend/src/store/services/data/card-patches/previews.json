@@ -1762,6 +1762,23 @@
     "xp": 0
   },
   {
+    "code": "12092",
+    "deck_limit": 2,
+    "faction_code": "neutral",
+    "flavor": "No mercy!",
+    "illustrator": "Rob Laskey",
+    "name": "Overpower",
+    "pack_code": "core_2026",
+    "position": 92,
+    "quantity": 2,
+    "reprint_of": "01091",
+    "skill_combat": 2,
+    "text": "Max 1 committed per skill test.\nIf this test is successful, the performing investigator draws 1 card.",
+    "traits": "Practiced.",
+    "type_code": "skill",
+    "xp": 0
+  },
+  {
     "code": "12093",
     "deck_limit": 2,
     "faction_code": "neutral",
