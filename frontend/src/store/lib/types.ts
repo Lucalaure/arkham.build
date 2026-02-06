@@ -1,5 +1,10 @@
-import type { FactionName, SkillIcon } from "@/utils/constants";
-import type { Attachments, Card, OptionSelect } from "../schemas/card.schema";
+import type {
+  Attachments,
+  Card,
+  FactionName,
+  OptionSelect,
+  SkillIcon,
+} from "@arkham-build/shared";
 import type { Cycle } from "../schemas/cycle.schema";
 import type { Deck, Slots } from "../schemas/deck.schema";
 import type { EncounterSet } from "../schemas/encounter-set.schema";

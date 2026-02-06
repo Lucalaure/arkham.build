@@ -3,7 +3,9 @@ import { requestId } from "hono/request-id";
 import { secureHeaders } from "hono/secure-headers";
 import type { Database } from "./db/db.ts";
 import { getAppDataVersions } from "./db/queries/get-app-data-versions.ts";
+import adminRouter from "./features/admin.ts";
 import { arkhamDbDecklistsRouter } from "./features/arkhamdb-decklists/index.ts";
+import fanMadeContentRouter from "./features/fan-made-content.ts";
 import { recommendationsRouter } from "./features/recommendations.ts";
 import { bodyLimitMiddleware } from "./lib/body-limit.ts";
 import type { Config } from "./lib/config.ts";
@@ -32,8 +34,12 @@ export function appFactory(config: Config, database: Database) {
   const pub = new Hono<HonoEnv>();
   pub.route("/arkhamdb-decklists", arkhamDbDecklistsRouter());
   pub.route("/recommendations", recommendationsRouter());
+  pub.route("/fan-made-project-info", fanMadeContentRouter);
 
   app.route("/v2/public", pub);
+
+  app.route("/admin", adminRouter);
+
   app.get("/up", (c) => c.text("ok"));
 
   app.get("/version", async (c) => {

@@ -1,3 +1,4 @@
+import type { FanMadeProject } from "@arkham-build/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,7 +9,6 @@ import { ListLayoutContextProvider } from "@/layouts/list-layout-context-provide
 import { ListLayoutNoSidebar } from "@/layouts/list-layout-no-sidebar";
 import { useStore } from "@/store";
 import { addProjectToMetadata } from "@/store/lib/fan-made-content";
-import type { FanMadeProject } from "@/store/schemas/fan-made-project.schema";
 import { selectIsInitialized } from "@/store/selectors/shared";
 import { queryFanMadeProjectData } from "@/store/services/queries";
 import type { Metadata } from "@/store/slices/metadata.types";

@@ -1,5 +1,5 @@
+import type { Card } from "@arkham-build/shared";
 import type { SealedDeck } from "../lib/types";
-import type { Card } from "../schemas/card.schema";
 
 export type CardSet = "requiredCards" | "advanced" | "replacement";
 

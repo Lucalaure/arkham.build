@@ -1,9 +1,9 @@
+import type { Card } from "@arkham-build/shared";
 import {
   filterInvestigatorAccess,
   filterInvestigatorWeaknessAccess,
   filterTag,
 } from "@/store/lib/filtering";
-import type { Card } from "@/store/schemas/card.schema";
 import {
   cardBackType,
   displayAttribute,

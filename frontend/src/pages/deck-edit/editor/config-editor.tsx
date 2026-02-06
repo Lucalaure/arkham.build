@@ -1,3 +1,4 @@
+import type { DeckOptionSelectType } from "@arkham-build/shared";
 import type { TFunction } from "i18next";
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,7 +17,6 @@ import type {
   ResolvedDeck,
   SealedDeck,
 } from "@/store/lib/types";
-import type { DeckOptionSelectType } from "@/store/schemas/card.schema";
 import { selectLimitedPoolPacks } from "@/store/selectors/lists";
 import type { StoreState } from "@/store/slices";
 import { debounce } from "@/utils/debounce";
