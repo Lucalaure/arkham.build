@@ -1,3 +1,8 @@
+import type {
+  Card,
+  DeckOption,
+  SealedDeckResponse,
+} from "@arkham-build/shared";
 import { createSelector } from "reselect";
 import { applyCardChanges } from "@/store/lib/card-edits";
 import {
@@ -13,9 +18,7 @@ import type {
   CardSet,
   CardWithRelations,
   ResolvedCard,
-  SealedDeck,
 } from "@/store/lib/types";
-import type { Card, DeckOption } from "@/store/schemas/card.schema";
 import type { StoreState } from "@/store/slices";
 import { assert } from "@/utils/assert";
 import { cardLimit, realCardLevel } from "@/utils/card-utils";
@@ -97,14 +100,14 @@ export const selectDraftCardPool = createSelector(
       _investigatorCode: string,
       _additionalDeckOptions: DeckOption[],
       _cardPool: string[] | undefined | null,
-      sealed: SealedDeck | undefined,
+      sealed: SealedDeckResponse | undefined,
     ) => sealed,
     (
       _: StoreState,
       _investigatorCode: string,
       _additionalDeckOptions: DeckOption[],
       _cardPool: string[] | undefined | null,
-      _sealed: SealedDeck | undefined,
+      _sealed: SealedDeckResponse | undefined,
       tabooSetId: number | undefined,
     ) => tabooSetId,
     (
@@ -112,7 +115,7 @@ export const selectDraftCardPool = createSelector(
       _investigatorCode: string,
       _additionalDeckOptions: DeckOption[],
       _cardPool: string[] | undefined | null,
-      _sealed: SealedDeck | undefined,
+      _sealed: SealedDeckResponse | undefined,
       _tabooSetId: number | undefined,
       remainingXp: number | undefined,
     ) => remainingXp,
@@ -127,7 +130,7 @@ export const selectDraftCardPool = createSelector(
     investigatorCode,
     additionalDeckOptions,
     cardPool: string[] | undefined | null,
-    sealed: SealedDeck | undefined,
+    sealed: SealedDeckResponse | undefined,
     tabooSetId: number | undefined,
     remainingXp: number | undefined,
     researchedCards: string[],
@@ -193,7 +196,13 @@ export const selectDraftCardPool = createSelector(
     // When user manually selects packs or sealed deck, they should see all cards regardless of collection
     if (!showAllCards && !hasManualCardPool && !hasSealedDeck) {
       filters.push((c: Card) =>
-        filterOwnership(c, metadata, lookupTables, collection, false),
+        filterOwnership({
+          card: c,
+          metadata,
+          lookupTables,
+          collection,
+          showAllCards: false,
+        }),
       );
     }
 

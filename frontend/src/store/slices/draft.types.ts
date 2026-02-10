@@ -1,5 +1,5 @@
+import type { SealedDeckResponse } from "@arkham-build/shared";
 import type { StorageProvider } from "@/utils/constants";
-import type { SealedDeck } from "../lib/types";
 
 export type DraftPhase = "setup" | "picking" | "complete";
 
@@ -37,7 +37,7 @@ export type DraftState = {
   };
   sets: DraftCardSet[];
   cardPool?: string[] | null; // undefined = use default environment, null = explicitly cleared (no filter), array = manually selected packs
-  sealed?: SealedDeck;
+  sealed?: SealedDeckResponse;
   mode: "new" | "upgrade";
   upgradeDeckId?: string;
   remainingXp: number;
@@ -70,7 +70,7 @@ export type DraftSlice = {
   draftSetInvestigatorCode: (value: string, side?: "front" | "back") => void;
   draftSetSelection: (key: string, value: string) => void;
   draftSetCardPool: (value: string[]) => void;
-  draftSetSealed: (payload: SealedDeck | undefined) => void;
+  draftSetSealed: (payload: SealedDeckResponse | undefined) => void;
   draftSetCardsPerPick: (value: number) => void;
   draftSetSkipsAllowed: (value: number) => void;
   draftSetResearchedCards: (cards: string[]) => void;

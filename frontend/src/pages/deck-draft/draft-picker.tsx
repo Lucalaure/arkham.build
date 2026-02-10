@@ -1,3 +1,4 @@
+import type { Card } from "@arkham-build/shared";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { CardScanControlled } from "@/components/card-scan";
@@ -6,7 +7,6 @@ import { useStore } from "@/store";
 import { applyCardChanges } from "@/store/lib/card-edits";
 import { encodeCustomizations } from "@/store/lib/deck-meta";
 import { resolveDeck } from "@/store/lib/resolve-deck";
-import type { Card } from "@/store/schemas/card.schema";
 import {
   selectLocaleSortingCollator,
   selectLookupTables,

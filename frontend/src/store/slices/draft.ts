@@ -1,3 +1,4 @@
+import type { Card, DeckOption } from "@arkham-build/shared";
 import type { StateCreator } from "zustand";
 import { assert } from "@/utils/assert";
 import {
@@ -14,7 +15,6 @@ import { applyCardChanges } from "../lib/card-edits";
 import { filterInvestigatorAccess } from "../lib/filtering";
 import { resolveCardWithRelations } from "../lib/resolve-card";
 import { resolveDeck } from "../lib/resolve-deck";
-import type { Card, DeckOption } from "../schemas/card.schema";
 import { selectConnectionsData } from "../selectors/connections";
 import {
   selectAvailableDraftCards,
