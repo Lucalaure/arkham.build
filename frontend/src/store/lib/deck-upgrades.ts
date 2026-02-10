@@ -1,11 +1,12 @@
+import type { Card } from "@arkham-build/shared";
 import {
   countExperience,
   realCardLevel,
   splitMultiValue,
 } from "@/utils/card-utils";
 import { SPECIAL_CARD_CODES } from "@/utils/constants";
+import { isEmpty } from "@/utils/is-empty";
 import { range } from "@/utils/range";
-import type { Card } from "../schemas/card.schema";
 import type { Customization, ResolvedDeck } from "./types";
 
 type DeckChanges = {
@@ -350,38 +351,43 @@ function calculateXpSpent(
         continue;
       }
 
-      const upgradedFrom = upgrades[card.code];
-
       const isSpell = splitMultiValue(card.real_traits).includes("Spell");
 
+      const isUpgraded = !isEmpty(upgrades[card.code]);
+
       // if an XP card is upgraded, i.e. (1) => (5), subtract the previous upgrade's XP cost.
-      if (upgradedFrom) {
-        const upgradedCount = upgradedFrom[1];
+      if (isUpgraded) {
+        for (const upgradedFrom of upgrades[card.code] ?? []) {
+          const upgradedCount = upgradedFrom[1];
 
-        // handle these one by one to account for discounts properly.
-        for (const _ of range(0, upgradedCount)) {
-          cost -= countExperience(upgradedFrom[0], 1);
+          // handle these one by one to account for discounts properly.
+          for (const _ of range(0, upgradedCount)) {
+            cost -= countExperience(upgradedFrom[0], 1);
 
-          const spent =
-            countExperience(card, 1) - countExperience(upgradedFrom[0], 1);
+            const spent =
+              countExperience(card, 1) - countExperience(upgradedFrom[0], 1);
 
-          // upgrades can be discounted via DtRH and Arcane Research (spells).
-          let discounted = spent;
-          if (dtrhFirst) {
-            discounted = applyDownTheRabbitHole(discounted);
-            if (isSpell) discounted = applyArcaneResearch(discounted);
-          } else {
-            if (isSpell) discounted = applyArcaneResearch(discounted);
-            discounted = applyDownTheRabbitHole(discounted);
+            // upgrades can be discounted via DtRH and Arcane Research (spells).
+            let discounted = spent;
+
+            if (dtrhFirst) {
+              discounted = applyDownTheRabbitHole(discounted);
+              if (isSpell) discounted = applyArcaneResearch(discounted);
+            } else {
+              if (isSpell) discounted = applyArcaneResearch(discounted);
+              discounted = applyDownTheRabbitHole(discounted);
+            }
+
+            cost -= spent - discounted;
           }
-
-          cost -= spent - discounted;
         }
       } else if (level === 0) {
         cost = applyFree0Swaps(cost, quantity);
         // if an XP card is new and DtRH is in deck, a penalty of 1XP is applied,
         // (unless it's an exiled card that is re-added)
-      } else if (modifierFlags.downTheRabbitHole && !upgradedFrom) {
+        // FIXME: there is an edge case here where only one copy is an upgrade, while the other is a buy.
+        //        in this case, DtRH should apply once, but currently it does not.
+      } else if (modifierFlags.downTheRabbitHole && !isUpgraded) {
         const exiled = next.exileSlots[card.code] ?? 0;
         const added = quantity - exiled;
 
@@ -579,6 +585,7 @@ function countFreeLevel0Cards(
     }
 
     const removed = slotDiff.removes.find((diff) => findUpgraded(diff, card));
+
     // upgrading a card into a permanent of same name frees a level 0 slot.
     if (removed && !removed[0].permanent) {
       free0Cards += quantity;
@@ -589,16 +596,34 @@ function countFreeLevel0Cards(
 }
 
 function getDirectUpgrades(slotDiff: Diff) {
-  const upgrades: Record<string, SlotDiff | undefined> = {};
-  for (const [card, quantityAdded] of slotDiff.adds) {
-    const removed = slotDiff.removes.find((diff) => findUpgraded(diff, card));
+  const upgrades: Record<string, SlotDiff[] | undefined> = {};
 
-    if (removed) {
+  // expand removes into single quantities to handle case
+  // where one card is upgraded into from multiple different cards.
+  const removes = slotDiff.removes.flatMap((diff) => {
+    const qty = Math.abs(diff[1]);
+    return range(0, qty).map(() => [diff[0], -1] as SlotDiff);
+  });
+
+  for (const [card, quantityAdded] of slotDiff.adds) {
+    let unmatched = quantityAdded;
+
+    while (unmatched > 0) {
+      const removedIdx = removes.findIndex((diff) => findUpgraded(diff, card));
+
+      if (removedIdx < 0) break;
+
+      const removed = removes.splice(removedIdx, 1)[0];
+
       const quantityRemoved = Math.abs(removed[1]);
-      upgrades[card.code] = [
+
+      upgrades[card.code] ??= [];
+      upgrades[card.code]?.push([
         removed[0],
         Math.min(quantityRemoved, quantityAdded),
-      ];
+      ]);
+
+      unmatched -= quantityRemoved;
     }
   }
 

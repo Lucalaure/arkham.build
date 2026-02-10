@@ -151,7 +151,7 @@ export function CardSearch(props: Props) {
             id="card-search-input"
             label={t("lists.search.placeholder")}
             inputClassName={css["field-input"]}
-            onChangeValue={onValueChange}
+            onValueChange={onValueChange}
             onKeyDown={onInputKeyDown}
             placeholder={t("lists.search.placeholder")}
             iconSlotSize={iconSlotSize}

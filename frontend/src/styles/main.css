@@ -333,7 +333,7 @@
     font-family: var(--font-family-ui);
     line-height: 1.5;
     font-size: var(--text-sm);
-    background-color: var(--palette-point-five);
+    background-color: var(--palette-1);
     color: var(--palette-5);
     border: 1px solid var(--palette-2);
     border-radius: var(--rounded);

@@ -111,6 +111,9 @@ function SettingsInner({
       <form className={css["settings"]} onSubmit={onSubmit}>
         <header className={css["header"]}>
           <h1 className={css["title"]}>{t("settings.title")}</h1>
+
+          <div id="settings-header-portal" />
+
           <div className={css["header-actions"]}>
             <Button
               data-testid="settings-back"
@@ -153,7 +156,7 @@ function SettingsInner({
                 <span>{t("settings.backup.title")}</span>
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="general" forceMount>
+            <TabsContent value="general">
               <Section title={t("settings.general.title")}>
                 <DefaultEnvironmentSetting
                   settings={settings}
@@ -233,7 +236,7 @@ function SettingsInner({
                 </div>
               </Section>
             </TabsContent>
-            <TabsContent value="collection" forceMount>
+            <TabsContent value="collection">
               <Section title={t("settings.collection.title")}>
                 <ShowPreviewsSetting
                   settings={settings}
@@ -249,12 +252,12 @@ function SettingsInner({
                 />
               </Section>
             </TabsContent>
-            <TabsContent value="fan-made-content" forceMount>
+            <TabsContent value="fan-made-content">
               <Section title={t("fan_made_content.title")}>
                 <FanMadeContent settings={settings} setSettings={setSettings} />
               </Section>
             </TabsContent>
-            <TabsContent value="backup" forceMount>
+            <TabsContent value="backup">
               <Section title={t("settings.backup.title")}>
                 <BackupRestore />
               </Section>

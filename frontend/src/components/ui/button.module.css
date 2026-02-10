@@ -5,7 +5,7 @@
 
     align-items: center;
     border-radius: var(--rounded);
-    background: var(--palette-point-five);
+    background: var(--palette-1);
     color: var(--text);
     border: 1px solid var(--palette-2);
     font-family: var(--font-family-ui);
@@ -21,13 +21,13 @@
     }
 
     &:not([disabled]):hover {
-      background: var(--palette-1);
-      border-color: var(--palette-2);
+      background: var(--palette-2);
+      border-color: var(--palette-3);
     }
 
     &:not([disabled]):active {
-      background: var(--palette-2);
-      border-color: var(--palette-3);
+      background: var(--palette-3);
+      border-color: var(--palette-three-point-five);
     }
 
     &:focus-visible {

@@ -5,6 +5,7 @@ node_modules
 src/tests
 
 .dockerignore
+.env
 .env*
 .gitignore
 biome.json

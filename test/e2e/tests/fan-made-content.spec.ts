@@ -45,11 +45,21 @@ test.describe("fan-made content", () => {
   test("view cards in pack", async ({ page }) => {
     await page.goto("/settings?tab=fan-made-content");
     await importPackFromFile(page, "fan_made_investigator_project.json");
-    await page.getByTestId("collection-project-view-cards").click();
+
+    page
+      .getByTestId("collection")
+      .getByTestId("collection-project-view-cards")
+      .click();
+
+    const page1 = await page.waitForEvent("popup");
+
     await expect(
-      page.getByRole("img", {
-        name: "Scan of a33f6beb-915c-428c-8891-df292ddec98a",
-      }),
+      page1.getByRole("main").getByText("Ordinary Citizens", { exact: true }),
+    ).toBeVisible();
+    await page1.getByTestId("search-input").click();
+    await page1.getByTestId("search-input").fill("Lucia");
+    await expect(
+      page1.getByRole("link", { name: "Scan of a33f6beb-915c-428c-" }),
     ).toBeVisible();
   });
 

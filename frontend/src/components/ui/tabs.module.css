@@ -62,8 +62,8 @@
     border-bottom: 0.125rem solid var(--accent-color-dark, var(--nord-10));
   }
 
-  .trigger[data-state="active"]:hover,
-  .trigger[data-state="active"]:focus-visible {
+  .trigger:not([data-state="active"]):hover,
+  .trigger:not([data-state="active"]):focus-visible {
     border-color: var(--accent-color, var(--nord-10));
     z-index: 1;
   }

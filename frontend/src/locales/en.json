@@ -733,6 +733,8 @@
       "id": "Deck id",
       "latest_upgrade": {
         "add_to_deck": "Add to current deck",
+        "decrement_xp": "Decrease available amount of XP for this upgrade",
+        "increment_xp": "Increase available amount of XP for this upgrade",
         "no_changes": "No changes.",
         "summary": "{{xpSpent}} of {{xp}} XP spent",
         "title": "Latest upgrade",
@@ -1164,6 +1166,7 @@
       "content_types": "Content types",
       "content_version": "Content version",
       "empty": "No content installed",
+      "filter_fan_made_content": "Search content...",
       "import_url": {
         "label": "Content URL",
         "placeholder": "Enter an URL...",
@@ -1174,6 +1177,7 @@
         "available_content_loading": "Loading available content...",
         "content_loading": "Loading content...",
         "fetch_failed": "Failed to load content: {{error}}",
+        "no_match": "No available content matches your filter",
         "parse_failed": "Failed to add content: {{error}}",
         "registry_failed": "Failed to load available content from registry: {{error}}"
       },
@@ -1403,6 +1407,7 @@
     "rules": {
       "title": "Rules reference",
       "back_to_top": "Back to top",
+      "search_placeholder": "Search keywords...",
       "toc": "Table of contents"
     },
     "search": {
@@ -1434,6 +1439,7 @@
       "collection": {
         "card_collection": "Card collection",
         "card_count": "Card count",
+        "chapter": "Chapter {{number}}",
         "new_format": "New format",
         "old_format": "Old format",
         "show_all_cards_owned": "Show all cards as owned",

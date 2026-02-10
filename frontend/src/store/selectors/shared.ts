@@ -1,3 +1,4 @@
+import type { Card } from "@arkham-build/shared";
 import { createSelector } from "reselect";
 import { official } from "@/utils/card-utils";
 import { PREVIEW_PACKS } from "@/utils/constants";
@@ -10,7 +11,6 @@ import { ownedCardCount } from "../lib/card-ownership";
 import { addProjectToMetadata, cloneMetadata } from "../lib/fan-made-content";
 import { createLookupTables } from "../lib/lookup-tables";
 import type { ResolvedDeck } from "../lib/types";
-import type { Card } from "../schemas/card.schema";
 import type { Cycle } from "../schemas/cycle.schema";
 import type { Pack } from "../schemas/pack.schema";
 import type { StoreState } from "../slices";
@@ -125,13 +125,13 @@ export const selectCardOwnedCount = createSelector(
   (state: StoreState) => state.settings,
   (metadata, lookupTables, collection, settings) => {
     return (card: Card) => {
-      return ownedCardCount(
+      return ownedCardCount({
         card,
         metadata,
         lookupTables,
         collection,
-        settings.showAllCards,
-      );
+        showAllCards: settings.showAllCards,
+      });
     };
   },
 );
@@ -359,14 +359,16 @@ export const selectPrintingsForCard = createSelector(
 
 export const selectBuildQlInterpreter = createSelector(
   selectMetadata,
+  selectLookupTables,
   selectActiveList,
   (_: StoreState, deck?: ResolvedDeck) => deck,
-  (metadata, list, deck) => {
+  (metadata, lookupTables, list, deck) => {
     return new Interpreter({
       fields,
       fieldLookupContext: {
         deck,
         i18n,
+        lookupTables,
         matchBacks: !!list?.search?.includeBacks,
         metadata,
       },

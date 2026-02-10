@@ -1,3 +1,11 @@
+import type { Card } from "@arkham-build/shared";
+import {
+  ASSET_SLOT_ORDER,
+  FACTION_ORDER,
+  type FactionName,
+  SKILL_KEYS,
+  type SkillKey,
+} from "@arkham-build/shared";
 import { createSelector } from "reselect";
 import {
   displayAttribute,
@@ -5,13 +13,8 @@ import {
   splitMultiValue,
 } from "@/utils/card-utils";
 import {
-  ASSET_SLOT_ORDER,
   CYCLES_WITH_STANDALONE_PACKS,
-  FACTION_ORDER,
-  type FactionName,
   NO_SLOT_STRING,
-  SKILL_KEYS,
-  type SkillKey,
   SPECIAL_CARD_CODES,
 } from "@/utils/constants";
 import { resolveLimitedPoolPacks } from "@/utils/environments";
@@ -68,7 +71,6 @@ import {
   sortByName,
 } from "../lib/sorting";
 import { isResolvedDeck, type ResolvedDeck } from "../lib/types";
-import type { Card } from "../schemas/card.schema";
 import type { Cycle } from "../schemas/cycle.schema";
 import type { Pack } from "../schemas/pack.schema";
 import type { StoreState } from "../slices";
@@ -576,6 +578,7 @@ const selectBaseListCards = createSelector(
   (state: StoreState) => state.fanMadeData.projects,
   (state: StoreState) => selectActiveList(state)?.systemFilter,
   (state: StoreState) => selectActiveList(state)?.filterValues,
+  (state: StoreState) => selectActiveList(state)?.fanMadeCycleCodes,
   selectDeckInvestigatorFilter,
   selectCanonicalTabooSetId,
   selectDeckCustomizations,
@@ -587,6 +590,7 @@ const selectBaseListCards = createSelector(
     fanMadeProjects,
     systemFilter,
     filterValues,
+    fanMadeCycleCodes,
     deckInvestigatorFilter,
     tabooSetId,
     customizations,
@@ -621,7 +625,9 @@ const selectBaseListCards = createSelector(
       if (!pack?.cycle_code) return false;
 
       return Boolean(
-        fanMadeData?.cards?.[card.code] || fanMadeProjects?.[pack.cycle_code],
+        fanMadeData?.cards?.[card.code] ||
+          fanMadeProjects?.[pack.cycle_code] ||
+          fanMadeCycleCodes?.includes(pack.cycle_code),
       );
     });
 
@@ -660,13 +666,13 @@ const selectBaseListCards = createSelector(
 
         if (value !== "all") {
           filters.push((card: Card) => {
-            const ownership = filterOwnership(
+            const ownership = filterOwnership({
               card,
               metadata,
               lookupTables,
               collection,
-              false,
-            );
+              showAllCards: false,
+            });
 
             return value === "owned" ? ownership : !ownership;
           });
@@ -1609,7 +1615,10 @@ export const selectAvailableUpgrades = createSelector(
         const isNotDuplicated =
           !availableUpgrades.upgrades[card.code] ||
           availableUpgrades.upgrades[card.code].every(
-            (c) => c.xp !== upgrade.xp || c.subname !== upgrade.subname,
+            (c) =>
+              c.xp !== upgrade.xp ||
+              displayAttribute(c, "subname") !==
+                displayAttribute(upgrade, "subname"),
           );
         if (!isNotDuplicated) continue;
 
@@ -1621,6 +1630,17 @@ export const selectAvailableUpgrades = createSelector(
     return availableUpgrades;
   },
 );
+
+export function selectResolvedUpgrades(
+  state: StoreState,
+  availableUpgrades: AvailableUpgrades,
+  deck: ResolvedDeck,
+  card: Card,
+) {
+  return availableUpgrades.upgrades[card.code]
+    .sort((a, b) => (a?.xp ?? 0) - (b?.xp ?? 0))
+    .map((upgrade) => selectResolvedCardById(state, upgrade.code, deck));
+}
 
 /**
  * Filter changes

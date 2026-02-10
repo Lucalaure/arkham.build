@@ -1,3 +1,8 @@
+import {
+  type FanMadeProject,
+  type FanMadeProjectInfo,
+  FanMadeProjectSchema,
+} from "@arkham-build/shared";
 import { type UseQueryResult, useQuery } from "@tanstack/react-query";
 import {
   BookDashedIcon,
@@ -9,47 +14,29 @@ import {
   LinkIcon,
   Trash2Icon,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "wouter";
 import { z } from "zod";
 import type { SettingProps } from "@/pages/settings/types";
 import { useStore } from "@/store";
-import {
-  addProjectToMetadata,
-  cloneMetadata,
-} from "@/store/lib/fan-made-content";
-import { getGroupedCards } from "@/store/lib/grouping";
-import { makeSortFunction } from "@/store/lib/sorting";
-import type { Card } from "@/store/schemas/card.schema";
-import {
-  type FanMadeProject,
-  FanMadeProjectSchema,
-} from "@/store/schemas/fan-made-project.schema";
 import { selectOwnedFanMadeProjects } from "@/store/selectors/fan-made-content";
 import {
-  selectLocaleSortingCollator,
-  selectMetadata,
-} from "@/store/selectors/shared";
-import {
-  type FanMadeProjectListing,
   queryFanMadeProjectData,
   queryFanMadeProjects,
 } from "@/store/services/queries";
-import type {
-  FanMadeContentFilter,
-  ListDisplay,
-} from "@/store/slices/lists.types";
-import type { Metadata } from "@/store/slices/metadata.types";
+import type { FanMadeContentFilter } from "@/store/slices/lists.types";
 import { assert } from "@/utils/assert";
 import { cx } from "@/utils/cx";
 import { capitalize, formatDate } from "@/utils/formatting";
+import { fuzzyMatch, prepareNeedle } from "@/utils/fuzzy";
 import { isEmpty } from "@/utils/is-empty";
 import { parseMarkdown } from "@/utils/markdown";
-import { CardGrid } from "../card-list/card-grid";
+import { useHotkey } from "@/utils/use-hotkey";
 import { ErrorDisplay, ErrorImage } from "../error-display/error-display";
 import { Button } from "../ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
+import { Dialog, DialogContent } from "../ui/dialog";
 import { Field, FieldLabel } from "../ui/field";
 import { FileInput } from "../ui/file-input";
 import { Loader } from "../ui/loader";
@@ -63,10 +50,15 @@ import {
 } from "../ui/modal";
 import { Plane } from "../ui/plane";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { SearchInput } from "../ui/search-input";
 import { Select } from "../ui/select";
 import { Tag } from "../ui/tag";
 import { useToast } from "../ui/toast.hooks";
 import css from "./fan-made-content.module.css";
+
+type Filterable = {
+  meta: FanMadeProject["meta"];
+};
 
 export function FanMadeContent(props: SettingProps) {
   const { t } = useTranslation();
@@ -86,7 +78,7 @@ export function FanMadeContent(props: SettingProps) {
 
   const listingsQuery = useQuery({
     queryFn: queryFanMadeProjects,
-    queryKey: ["fan-made-projects"],
+    queryKey: ["fan-made-project-info"],
   });
 
   const onAddProject = useCallback(
@@ -127,11 +119,43 @@ export function FanMadeContent(props: SettingProps) {
   const installId = searchParams.get("install_id");
   const installUrl = searchParams.get("install_url");
 
+  const [search, setSearchValue] = useState("");
+
+  const projectFilter = useMemo(() => {
+    function projectFilterfn<T extends Filterable>(
+      projects: T[] | undefined,
+    ): T[] | undefined {
+      const needle = prepareNeedle(search);
+
+      if (!search || !projects) return projects;
+      if (!needle) return projects;
+
+      return projects.filter((project) => {
+        const haystack = project.meta.name + project.meta.author;
+        return fuzzyMatch([haystack], needle);
+      });
+    }
+    return projectFilterfn;
+  }, [search]);
+
+  const searchChange = useCallback((val: string) => {
+    setSearchValue(val);
+  }, []);
+
   return (
     <div className={css["container"]}>
       <DisplaySettings {...props} />
-      <Collection onAddProject={onAddProject} listingsQuery={listingsQuery} />
-      <Registry onAddProject={onAddProject} listingsQuery={listingsQuery} />
+      <FanMadeSearch search={search} onSearchChange={searchChange} />
+      <Collection
+        onAddProject={onAddProject}
+        listingsQuery={listingsQuery}
+        filterFn={projectFilter}
+      />
+      <Registry
+        onAddProject={onAddProject}
+        listingsQuery={listingsQuery}
+        filterFn={projectFilter}
+      />
       {!!(installId || installUrl) && (
         <QuickInstallDialog
           onAddProject={onAddProject}
@@ -197,18 +221,70 @@ function DisplaySettings(props: SettingProps) {
   );
 }
 
-type RegistryProps = {
-  onAddProject: (payload: unknown) => Promise<void>;
-  listingsQuery: UseQueryResult<FanMadeProjectListing[]>;
+type SearchProps = {
+  search: string;
+  onSearchChange: (val: string) => void;
 };
 
-function Collection({ onAddProject, listingsQuery }: RegistryProps) {
+function FanMadeSearch({ search, onSearchChange }: SearchProps) {
   const { t } = useTranslation();
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(
+    document.getElementById("settings-header-portal"),
+  );
+
+  const ref = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!portalTarget) {
+      const target = document.getElementById("settings-header-portal");
+      setPortalTarget(target);
+    }
+  }, [portalTarget]);
+
+  const onFocusSearch = useCallback(() => {
+    if (ref.current) {
+      ref.current.focus();
+    }
+  }, []);
+
+  useHotkey("/", onFocusSearch);
+
+  const searchElement = (
+    <search className={css["fan-made-search"]}>
+      <SearchInput
+        bindSlashKey
+        placeholder={t("fan_made_content.filter_fan_made_content")}
+        id="fanmade-search-input"
+        ref={ref}
+        value={search}
+        onValueChange={onSearchChange}
+      />
+    </search>
+  );
+
+  if (portalTarget) {
+    return createPortal(searchElement, portalTarget);
+  }
+
+  return searchElement;
+}
+
+type RegistryProps = {
+  onAddProject: (payload: unknown) => Promise<void>;
+  filterFn: <T extends Filterable>(
+    projects: T[] | undefined,
+  ) => T[] | undefined;
+  listingsQuery: UseQueryResult<FanMadeProjectInfo[]>;
+};
+
+function Collection({ onAddProject, listingsQuery, filterFn }: RegistryProps) {
+  const { t } = useTranslation();
+
+  const owned = useStore(selectOwnedFanMadeProjects);
+  const filteredOwned = filterFn(owned);
 
   const { onAddFromRegistry, onAddFromUrl, onAddLocalProject } =
     useProjectRegistry(onAddProject);
-
-  const owned = useStore(selectOwnedFanMadeProjects);
 
   const removeFanMadeProject = useStore((state) => state.removeFanMadeProject);
 
@@ -268,59 +344,62 @@ function Collection({ onAddProject, listingsQuery }: RegistryProps) {
         </Popover>
       </nav>
 
-      {isEmpty(owned) && (
+      {isEmpty(filteredOwned) && (
         <div className={css["empty"]} data-testid="collection-placeholder">
           <BookDashedIcon className={css["empty-icon"]} />
           <p className={css["empty-title"]}>{t("fan_made_content.empty")}</p>
         </div>
       )}
 
-      <div className={css["list"]}>
-        {owned.map((project) => {
-          const { meta } = project;
+      {filteredOwned && (
+        <div className={css["list"]}>
+          {filteredOwned.map((project) => {
+            const { meta } = project;
 
-          const hasRemote = !!meta.url;
+            const hasRemote = !!meta.url;
 
-          const listing = listingsQuery.data?.find(
-            (listing) => listing.meta.code === meta.code,
-          );
+            const listing = listingsQuery.data?.find(
+              (listing) => listing.meta.code === meta.code,
+            );
 
-          return (
-            <ProjectCard key={meta.code} project={project}>
-              {hasRemote && listing && (
-                <ProjectInstallStatus
-                  installed={project}
-                  remote={listing}
-                  onUpdate={onAddFromRegistry}
-                />
-              )}
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button size="sm" data-testid="collection-project-view-cards">
-                    <EyeIcon /> {t("fan_made_content.actions.view_cards")}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <PreviewModal project={project} />
-                </DialogContent>
-              </Dialog>
-              <Button
-                data-testid="collection-project-uninstall"
-                size="sm"
-                onClick={() => removeFanMadeProject(project.meta.code)}
-              >
-                <Trash2Icon /> {t("fan_made_content.actions.uninstall")}
-              </Button>
-            </ProjectCard>
-          );
-        })}
-      </div>
+            return (
+              <ProjectCard key={meta.code} project={project}>
+                {hasRemote && listing && (
+                  <ProjectInstallStatus
+                    installed={project}
+                    remote={listing}
+                    onUpdate={onAddFromRegistry}
+                  />
+                )}
+                <Button
+                  as="a"
+                  href={`/fan-made-content/preview/${meta.code}`}
+                  size="sm"
+                  data-testid="collection-project-view-cards"
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <EyeIcon /> {t("fan_made_content.actions.view_cards")}
+                </Button>
+                <Button
+                  data-testid="collection-project-uninstall"
+                  size="sm"
+                  onClick={() => removeFanMadeProject(project.meta.code)}
+                >
+                  <Trash2Icon /> {t("fan_made_content.actions.uninstall")}
+                </Button>
+              </ProjectCard>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
 
-function Registry({ onAddProject, listingsQuery }: RegistryProps) {
+function Registry({ onAddProject, listingsQuery, filterFn }: RegistryProps) {
   const { t } = useTranslation();
+  const filteredProjects = filterFn(listingsQuery.data);
   const { onAddFromRegistry } = useProjectRegistry(onAddProject);
 
   const owned = useStore((state) => state.fanMadeData.projects);
@@ -350,9 +429,18 @@ function Registry({ onAddProject, listingsQuery }: RegistryProps) {
         </div>
       )}
 
-      {listingsQuery.data && (
+      {!listingsQuery.isPending && isEmpty(filteredProjects) && (
+        <div className={css["empty"]} data-testid="registry-placeholder">
+          <BookDashedIcon className={css["empty-icon"]} />
+          <p className={css["empty-title"]}>
+            {t("fan_made_content.messages.no_match")}
+          </p>
+        </div>
+      )}
+
+      {!listingsQuery.isPending && filteredProjects && (
         <div className={css["list"]}>
-          {listingsQuery.data.map((listing) => {
+          {filteredProjects.map((listing) => {
             const { meta } = listing;
             const projectOwned = owned[meta.code];
 
@@ -362,6 +450,16 @@ function Registry({ onAddProject, listingsQuery }: RegistryProps) {
 
             return (
               <ProjectCard key={meta.code} project={listing}>
+                <Button
+                  as="a"
+                  href={`/fan-made-content/preview/${meta.code}`}
+                  size="sm"
+                  data-testid="collection-project-view-cards"
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <EyeIcon /> {t("fan_made_content.actions.view_cards")}
+                </Button>
                 {projectOwned ? (
                   <ProjectInstallStatus
                     installed={projectOwned}
@@ -385,9 +483,9 @@ function Registry({ onAddProject, listingsQuery }: RegistryProps) {
 }
 
 function ProjectInstallStatus(props: {
-  onUpdate: (listing: FanMadeProjectListing) => Promise<void>;
+  onUpdate: (listing: FanMadeProjectInfo) => Promise<void>;
   installed?: FanMadeProject;
-  remote?: FanMadeProjectListing;
+  remote?: FanMadeProjectInfo;
   showFallback?: boolean;
 }) {
   const { installed, remote, showFallback, onUpdate } = props;
@@ -421,7 +519,7 @@ function ProjectInstallStatus(props: {
 function ProjectCard(props: {
   children?: React.ReactNode;
   headerSlot?: React.ReactNode;
-  project: FanMadeProject | FanMadeProjectListing;
+  project: FanMadeProject | FanMadeProjectInfo;
 }) {
   const { children, headerSlot, project } = props;
   const { meta } = project;
@@ -520,80 +618,6 @@ function ProjectCard(props: {
         </p>
       )}
     </MediaCard>
-  );
-}
-
-function PreviewModal({ project }: { project: FanMadeProject }) {
-  const metadata = useStore(selectMetadata);
-  const sortingCollator = useStore(selectLocaleSortingCollator);
-
-  const projectMetadata = selectMetadataWithPack(metadata, project);
-
-  const projectCards = Object.values(project.data.cards)
-    .map((card) => projectMetadata.cards[card.code])
-    .filter((x) => !x.hidden);
-
-  const listDisplay = useMemo(
-    () =>
-      ({
-        grouping: ["pack", "encounter_set"],
-        sorting: ["position"],
-        viewMode: "scans",
-      }) as ListDisplay,
-    [],
-  );
-
-  const groupedCards = getGroupedCards(
-    listDisplay.grouping,
-    projectCards,
-    makeSortFunction(listDisplay.sorting, projectMetadata, sortingCollator),
-    projectMetadata,
-    sortingCollator,
-  );
-
-  const groups = [] as { key: string; type: string }[];
-  const groupCounts = [] as number[];
-  const cards = [] as Card[];
-
-  for (const group of groupedCards.data) {
-    cards.push(...group.cards);
-
-    groups.push({
-      key: group.key,
-      type: group.type,
-    });
-
-    groupCounts.push(group.cards.length);
-  }
-
-  return (
-    <Modal>
-      <ModalBackdrop />
-      <ModalInner className={css["modal-inner"]} size="90%">
-        <ModalActions className={css["modal-actions"]} />
-        <DefaultModalContent
-          className={css["modal-content"]}
-          mainClassName={css["modal-content-main"]}
-        >
-          <CardGrid
-            data={{
-              cards,
-              totalCardCount: cards.length,
-              key: project.meta.code,
-              groups,
-              groupCounts,
-            }}
-            listDisplay={{
-              grouping: ["encounter_set", "subtype", "type", "slot"],
-              sorting: ["position", "name", "level"],
-              viewMode: "scans",
-            }}
-            listMode="grouped"
-            metadata={metadata}
-          />
-        </DefaultModalContent>
-      </ModalInner>
-    </Modal>
   );
 }
 
@@ -760,7 +784,7 @@ function useProjectRegistry(onAddProject: (payload: unknown) => Promise<void>) {
   );
 
   const onAddFromRegistry = useCallback(
-    async (project: FanMadeProjectListing) => {
+    async (project: FanMadeProjectInfo) => {
       await onAddQuery(() => queryFanMadeProjectData(project.bucket_path));
     },
     [onAddQuery],
@@ -771,10 +795,4 @@ function useProjectRegistry(onAddProject: (payload: unknown) => Promise<void>) {
     onAddFromUrl,
     onAddFromRegistry,
   };
-}
-
-function selectMetadataWithPack(metadata: Metadata, project: FanMadeProject) {
-  const meta = cloneMetadata(metadata);
-  addProjectToMetadata(meta, project);
-  return meta;
 }

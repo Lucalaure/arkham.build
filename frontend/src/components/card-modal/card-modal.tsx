@@ -1,5 +1,7 @@
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: not relevant. */
 /** biome-ignore-all lint/a11y/noStaticElementInteractions: backdrop needs to be clickable. */
+
+import type { Card as CardT } from "@arkham-build/shared";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -14,12 +16,12 @@ import {
   getRelatedCardQuantity,
   getRelatedCards,
 } from "@/store/lib/resolve-card";
-import type { Card as CardT } from "@/store/schemas/card.schema";
 import { selectCardWithRelations } from "@/store/selectors/card-view";
 import { selectShowFanMadeRelations } from "@/store/selectors/shared";
 import type { CardModalConfig } from "@/store/slices/ui.types";
 import {
   canShowCardPoolExtension,
+  deckCreateLink,
   isSpecialist,
   isStaticInvestigator,
 } from "@/utils/card-utils";
@@ -235,11 +237,7 @@ export function CardModal(props: Props) {
               <>
                 <Link
                   asChild
-                  href={
-                    cardWithRelations.card.parallel
-                      ? `/deck/create/${cardWithRelations.card.alternate_of_code}?initial_investigator=${cardWithRelations.card.code}`
-                      : `/deck/create/${cardWithRelations.card.code}`
-                  }
+                  href={deckCreateLink(cardWithRelations.card)}
                   onClick={onCloseModal}
                 >
                   <Button as="a" data-testid="card-modal-create-deck">

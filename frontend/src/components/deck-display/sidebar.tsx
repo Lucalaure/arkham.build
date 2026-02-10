@@ -104,11 +104,16 @@ export function Sidebar(props: Props) {
         <DeckDetails deck={deck} />
         {origin === "local" && <SidebarUpgrade deck={deck} />}
 
-        {origin === "arkhamdb" ||
-          (deck.source === "arkhamdb" && <ArkhamDBDetails deck={deck} />)}
+        {(origin === "arkhamdb" || deck.source === "arkhamdb") && (
+          <ArkhamDBDetails deck={deck} />
+        )}
 
-        {origin === "local" && deck.source !== "arkhamdb" && (
-          <Sharing onArkhamDBUpload={onArkhamDBUpload} deck={deck} />
+        {deck.source !== "arkhamdb" && (
+          <Sharing
+            onArkhamDBUpload={onArkhamDBUpload}
+            deck={deck}
+            origin={origin}
+          />
         )}
       </div>
     </div>
@@ -450,8 +455,12 @@ function SidebarActions(props: {
   );
 }
 
-function Sharing(props: { onArkhamDBUpload?: () => void; deck: ResolvedDeck }) {
-  const { deck, onArkhamDBUpload } = props;
+function Sharing(props: {
+  onArkhamDBUpload?: () => void;
+  deck: ResolvedDeck;
+  origin: DeckOrigin;
+}) {
+  const { deck, onArkhamDBUpload, origin } = props;
   const toast = useToast();
   const { t } = useTranslation();
 
@@ -505,23 +514,29 @@ function Sharing(props: { onArkhamDBUpload?: () => void; deck: ResolvedDeck }) {
         icon={<ShareIcon />}
         label={t("deck_view.sharing.title")}
       >
-        {share ? (
+        {share || origin !== "local" ? (
           <div className={css["share"]}>
             <ShareInfo id={deck.id} path={`/share/${deck.id}`} />
-            <nav className={css["share-actions"]}>
-              {deck.date_update !== share && (
-                <Button disabled={isReadOnly} onClick={onUpdateShare} size="sm">
-                  {t("deck_view.sharing.update")}
+            {origin === "local" && (
+              <nav className={css["share-actions"]}>
+                {deck.date_update !== share && (
+                  <Button
+                    disabled={isReadOnly}
+                    onClick={onUpdateShare}
+                    size="sm"
+                  >
+                    {t("deck_view.sharing.update")}
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  onClick={onDeleteShare}
+                  data-testid="share-delete"
+                >
+                  {t("deck_view.sharing.delete")}
                 </Button>
-              )}
-              <Button
-                size="sm"
-                onClick={onDeleteShare}
-                data-testid="share-delete"
-              >
-                {t("deck_view.sharing.delete")}
-              </Button>
-            </nav>
+              </nav>
+            )}
           </div>
         ) : (
           <div className={css["share-empty"]}>

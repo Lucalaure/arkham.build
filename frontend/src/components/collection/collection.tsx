@@ -5,8 +5,12 @@ import { Link } from "wouter";
 import PackIcon from "@/components/icons/pack-icon";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { useStore } from "@/store";
+import type { Pack } from "@/store/schemas/pack.schema";
 import { selectCycleCardCounts } from "@/store/selectors/collection";
-import { selectCyclesAndPacks } from "@/store/selectors/lists";
+import {
+  type CycleWithPacks,
+  selectCyclesAndPacks,
+} from "@/store/selectors/lists";
 import type { SettingsState } from "@/store/slices/settings.types";
 import { official } from "@/utils/card-utils";
 import { CYCLES_WITH_STANDALONE_PACKS } from "@/utils/constants";
@@ -32,8 +36,38 @@ export function CollectionSettings(props: Props) {
   const cyclesWithPacks = useStore(selectCyclesAndPacks);
 
   const collectionCycles = useMemo(() => {
-    return cyclesWithPacks.filter((cycle) => official(cycle));
+    const officialCycles = cyclesWithPacks.filter((cycle) => official(cycle));
+    return officialCycles;
   }, [cyclesWithPacks]);
+
+  const cyclesByChapter = useMemo(() => {
+    const cyclesByChapter = collectionCycles.reduce(
+      (acc, cycle) => {
+        const packsByChapter = cycle.packs.reduce<Record<number, Pack[]>>(
+          (chapterAcc, pack) => {
+            const chapter = pack.chapter ?? 1;
+            chapterAcc[chapter] ??= [];
+            chapterAcc[chapter].push(pack);
+            return chapterAcc;
+          },
+          {},
+        );
+
+        Object.entries(packsByChapter).forEach(([chapterStr, packs]) => {
+          const chapter = Number.parseInt(chapterStr, 10);
+          acc[chapter] ??= [];
+          acc[chapter].push({
+            ...cycle,
+            packs,
+          });
+        });
+        return acc;
+      },
+      {} as Record<number, CycleWithPacks[]>,
+    );
+
+    return Object.entries(cyclesByChapter).sort((a, b) => +b[0] - +a[0]);
+  }, [collectionCycles]);
 
   const canEdit = !!setSettings;
 
@@ -109,106 +143,115 @@ export function CollectionSettings(props: Props) {
         name="collection"
         id="collection"
       >
-        <div className={css["cycles"]}>
-          {collectionCycles.map((cycle) => (
-            <MediaCard
-              key={cycle.code}
-              bannerAlt={`Cycle ${displayPackName(cycle)} backdrop`}
-              bannerUrl={`/assets/cycles/${cycle.code}.avif`}
-              title={
-                <div className={css["cycle-header-container"]}>
-                  <div className={css["cycle-label"]}>
-                    <PackIcon code={cycle.code} />
-                    {displayPackName(cycle)}
-                  </div>
-                  {canEdit &&
-                    !cycle.reprintPacks.length &&
-                    cycle.code !== "core" && (
-                      <CollectionCycleActions
-                        cycleCode={cycle.code}
-                        onToggleCycle={onToggleCycle}
-                      />
-                    )}
-                </div>
-              }
-            >
-              {!isEmpty(cycle.reprintPacks) && (
-                <div>
-                  <div className={css["cycle-subheader"]}>
-                    {t("settings.collection.new_format")}
-                    {canEdit && cycle.code !== "core" && (
-                      <CollectionCycleActions
-                        cycleCode={cycle.code}
-                        onToggleCycle={onToggleCycle}
-                        reprint
-                      />
-                    )}
-                  </div>
-                  <ol className={css["packs"]}>
-                    {cycle.reprintPacks.map((pack) => (
-                      <CollectionPack
-                        canEdit={canEdit}
-                        canShowCounts={canShowCounts}
-                        counts={counts}
-                        cycle={cycle}
-                        hasQuantity={pack.code === "core"}
-                        key={pack.code}
-                        onChange={onCheckPack}
-                        pack={pack}
-                        value={settings.collection[pack.code] ?? 0}
-                      />
-                    ))}
-                  </ol>
-                </div>
-              )}
+        {cyclesByChapter.map(([chapter, cycles]) => (
+          <div className={css["chapter"]} key={chapter}>
+            <h3 className={css["chapter-title"]}>
+              {t("settings.collection.chapter", {
+                number: chapter,
+              })}
+            </h3>
+            <div className={css["cycles"]}>
+              {cycles.map((cycle) => (
+                <MediaCard
+                  key={cycle.code}
+                  bannerAlt={`Cycle ${displayPackName(cycle)} backdrop`}
+                  bannerUrl={`/assets/cycles/${cycle.code}.avif`}
+                  title={
+                    <div className={css["cycle-header-container"]}>
+                      <div className={css["cycle-label"]}>
+                        <PackIcon code={cycle.code} />
+                        {displayPackName(cycle)}
+                      </div>
+                      {canEdit &&
+                        !cycle.reprintPacks.length &&
+                        cycle.code !== "core" && (
+                          <CollectionCycleActions
+                            cycleCode={cycle.code}
+                            onToggleCycle={onToggleCycle}
+                          />
+                        )}
+                    </div>
+                  }
+                >
+                  {!isEmpty(cycle.reprintPacks) && (
+                    <div>
+                      <div className={css["cycle-subheader"]}>
+                        {t("settings.collection.new_format")}
+                        {canEdit && cycle.code !== "core" && (
+                          <CollectionCycleActions
+                            cycleCode={cycle.code}
+                            onToggleCycle={onToggleCycle}
+                            reprint
+                          />
+                        )}
+                      </div>
+                      <ol className={css["packs"]}>
+                        {cycle.reprintPacks.map((pack) => (
+                          <CollectionPack
+                            canEdit={canEdit}
+                            canShowCounts={canShowCounts}
+                            counts={counts}
+                            cycle={cycle}
+                            hasQuantity={pack.code === "core"}
+                            key={pack.code}
+                            onChange={onCheckPack}
+                            pack={pack}
+                            value={settings.collection[pack.code] ?? 0}
+                          />
+                        ))}
+                      </ol>
+                    </div>
+                  )}
 
-              <div>
-                {!isEmpty(cycle.reprintPacks) && (
-                  <div className={css["cycle-subheader"]}>
-                    {t("settings.collection.old_format")}
-                    {canEdit && cycle.code !== "core" && (
-                      <CollectionCycleActions
-                        cycleCode={cycle.code}
-                        onToggleCycle={onToggleCycle}
-                      />
+                  <div>
+                    {!isEmpty(cycle.reprintPacks) && (
+                      <div className={css["cycle-subheader"]}>
+                        {t("settings.collection.old_format")}
+                        {canEdit && cycle.code !== "core" && (
+                          <CollectionCycleActions
+                            cycleCode={cycle.code}
+                            onToggleCycle={onToggleCycle}
+                          />
+                        )}
+                      </div>
                     )}
+                    <ol className={css["packs"]}>
+                      {cycle.packs.map((pack) => (
+                        <CollectionPack
+                          canEdit={canEdit}
+                          canShowCounts={canShowCounts}
+                          counts={counts}
+                          cycle={cycle}
+                          hasQuantity={pack.code === "core"}
+                          key={pack.code}
+                          onChange={onCheckPack}
+                          pack={pack}
+                          value={settings.collection[pack.code] ?? 0}
+                        />
+                      ))}
+                    </ol>
                   </div>
-                )}
-                <ol className={css["packs"]}>
-                  {cycle.packs.map((pack) => (
-                    <CollectionPack
-                      canEdit={canEdit}
-                      canShowCounts={canShowCounts}
-                      counts={counts}
-                      cycle={cycle}
-                      hasQuantity={pack.code === "core"}
-                      key={pack.code}
-                      onChange={onCheckPack}
-                      pack={pack}
-                      value={settings.collection[pack.code] ?? 0}
-                    />
-                  ))}
-                </ol>
-              </div>
 
-              {canShowCounts &&
-                counts &&
-                !CYCLES_WITH_STANDALONE_PACKS.includes(cycle.code) && (
-                  <article className={css["cycle-counts"]}>
-                    <header>
-                      <h4 className={css["cycle-counts-title"]}>
-                        {t("settings.collection.card_count")}
-                      </h4>
-                    </header>
-                    <CollectionCount
-                      counts={counts.cycles[cycle.code]}
-                      type="cycle"
-                    />
-                  </article>
-                )}
-            </MediaCard>
-          ))}
-        </div>
+                  {canShowCounts &&
+                    counts &&
+                    !CYCLES_WITH_STANDALONE_PACKS.includes(cycle.code) && (
+                      <article className={css["cycle-counts"]}>
+                        <header>
+                          <h4 className={css["cycle-counts-title"]}>
+                            {t("settings.collection.card_count")}
+                          </h4>
+                        </header>
+                        <CollectionCount
+                          counts={counts.cycles[cycle.code]}
+                          type="cycle"
+                        />
+                      </article>
+                    )}
+                </MediaCard>
+              ))}
+            </div>
+          </div>
+        ))}
       </fieldset>
     </Field>
   );

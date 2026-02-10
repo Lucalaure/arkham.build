@@ -1,6 +1,6 @@
+import type { Card } from "@arkham-build/shared";
 import { displayAttribute } from "@/utils/card-utils";
 import { fuzzyMatch, prepareNeedle } from "@/utils/fuzzy";
-import type { Card } from "../schemas/card.schema";
 import type { Search } from "../slices/lists.types";
 import type { Metadata } from "../slices/metadata.types";
 
@@ -52,6 +52,12 @@ export function applySearch(
   cards: Card[],
   metadata: Metadata,
 ): Card[] {
+  if (metadata.cards[search.value]) {
+    return cards.filter(
+      (card) => card.id === search.value || card.back_link_id === search.value,
+    );
+  }
+
   const needle = prepareNeedle(search.value);
   if (!needle) return cards;
 

@@ -1,15 +1,21 @@
 import {
+  type AttributeFilter,
+  type Card,
+  type DeckOption,
+  type SealedDeckResponse,
+  SKILL_KEYS,
+  type SkillKey,
+} from "@arkham-build/shared";
+import {
   cardLevel,
   cardUses,
   isSpecialist,
   official,
   splitMultiValue,
 } from "@/utils/card-utils";
-import type { SkillKey } from "@/utils/constants";
 import {
   NO_SLOT_STRING,
   REGEX_BONDED,
-  SKILL_KEYS,
   SPECIAL_CARD_CODES,
   TAG_REGEX_FALLBACKS,
 } from "@/utils/constants";
@@ -18,7 +24,6 @@ import type { Filter } from "@/utils/fp";
 import { and, not, notUnless, or } from "@/utils/fp";
 import { isEmpty } from "@/utils/is-empty";
 import { range } from "@/utils/range";
-import type { AttributeFilter, Card, DeckOption } from "../schemas/card.schema";
 import type {
   AssetFilter,
   CostFilter,
@@ -32,9 +37,9 @@ import type {
   SubtypeFilter,
 } from "../slices/lists.types";
 import type { Metadata } from "../slices/metadata.types";
-import { ownedCardCount } from "./card-ownership";
+import { type CardOwnershipOptions, ownedCardCount } from "./card-ownership";
 import type { LookupTables } from "./lookup-tables.types";
-import type { ResolvedDeck, SealedDeck, Selections } from "./types";
+import type { ResolvedDeck, Selections } from "./types";
 import { isOptionSelect } from "./types";
 
 /**
@@ -433,24 +438,8 @@ export function filterLevel(filterState: LevelFilter, investigator?: Card) {
  * Ownership
  */
 
-export function filterOwnership(
-  card: Card,
-  metadata: Metadata,
-  lookupTables: LookupTables,
-  collection: Record<string, number | boolean>,
-  showAllCards: boolean,
-  strict = false,
-) {
-  return (
-    ownedCardCount(
-      card,
-      metadata,
-      lookupTables,
-      collection,
-      showAllCards,
-      strict,
-    ) > 0
-  );
+export function filterOwnership(options: CardOwnershipOptions) {
+  return ownedCardCount(options) > 0;
 }
 
 /**
@@ -608,6 +597,16 @@ function filterMyriad(card: Card) {
 
 function filterRestrictions(card: Card, investigator: Card) {
   if (Array.isArray(card.restrictions?.trait)) {
+    // placeholder investigators don't have restrictions
+    if (
+      investigator.official === false &&
+      SPECIAL_CARD_CODES.GENERIC_CUSTOM_INVESTIGATORS.some(
+        (code) => code === investigator.code,
+      )
+    ) {
+      return true;
+    }
+
     const targetTraits = card.restrictions.trait;
 
     return splitMultiValue(investigator.real_traits).some((t) =>
@@ -1229,7 +1228,7 @@ export function filterInvestigatorWeaknessAccess(
 }
 
 export function filterSealed(
-  sealedDeck: SealedDeck["cards"],
+  sealedDeck: SealedDeckResponse["cards"],
   lookupTables: LookupTables,
 ) {
   return (c: Card) => {

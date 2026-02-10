@@ -12,7 +12,7 @@ export function DeckName({ formState, setFormState }: DecklistFilterProps) {
       <SearchInput
         id="deck-name"
         omitSearchIcon
-        onChangeValue={(name) => {
+        onValueChange={(name) => {
           setFormState((prev) => ({ ...prev, name }));
         }}
         placeholder={t("decklists.filters.name_placeholder")}

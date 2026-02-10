@@ -5,6 +5,7 @@ import { Button } from "./button";
 import css from "./search-input.module.css";
 
 interface Props extends React.ComponentProps<"input"> {
+  bindSlashKey?: boolean;
   className?: string;
   error?: Error;
   iconSlotSize?: number;
@@ -12,7 +13,7 @@ interface Props extends React.ComponentProps<"input"> {
   inputClassName?: string;
   label?: string;
   omitSearchIcon?: boolean;
-  onChangeValue: (value: string) => void;
+  onValueChange: (value: string) => void;
   id: string;
   value: string;
 }
@@ -20,6 +21,7 @@ interface Props extends React.ComponentProps<"input"> {
 export const SearchInput = forwardRef<HTMLInputElement, Props>(
   function SearchInput(
     {
+      bindSlashKey,
       className,
       error,
       iconSlot,
@@ -28,23 +30,23 @@ export const SearchInput = forwardRef<HTMLInputElement, Props>(
       id,
       label,
       omitSearchIcon,
-      onChangeValue,
+      onValueChange,
       value,
       ...rest
     },
     ref,
   ) {
     const onClear = useCallback(() => {
-      onChangeValue("");
-    }, [onChangeValue]);
+      onValueChange("");
+    }, [onValueChange]);
 
     const onChange = useCallback(
       (evt: React.ChangeEvent<HTMLInputElement>) => {
         if (evt.target instanceof HTMLInputElement) {
-          onChangeValue(evt.target.value);
+          onValueChange(evt.target.value);
         }
       },
-      [onChangeValue],
+      [onValueChange],
     );
 
     const cssVariables = useMemo(

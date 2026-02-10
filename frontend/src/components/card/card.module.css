@@ -110,7 +110,7 @@
     grid-template-columns: 1fr;
     padding: 0 0 var(--card-spacing) 0;
     grid-template-rows: auto 1fr;
-    grid-template-areas: "header" "content";
+    grid-template-areas: "header" "pre" "content";
   }
 
   .container.tooltip .card.back:not(.back-has-header) {

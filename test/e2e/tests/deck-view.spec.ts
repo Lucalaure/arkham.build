@@ -365,6 +365,11 @@ test.describe("deck view", () => {
       mask: defaultScreenshotMask(page),
     });
 
+    await expect(
+      page.getByTestId("share").getByTestId("deck-details-label"),
+    ).toBeVisible();
+    await expect(page.getByTestId("share-delete")).not.toBeVisible();
+
     await page.goBack();
     await unshareDeck(page);
   });

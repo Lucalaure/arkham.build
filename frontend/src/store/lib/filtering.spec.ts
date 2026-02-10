@@ -1,8 +1,9 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: test code */
+
+import type { Card } from "@arkham-build/shared";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { StoreApi } from "zustand";
 import { getMockStore } from "@/test/get-mock-store";
-import type { Card } from "../schemas/card.schema";
 import { selectLookupTables } from "../selectors/shared";
 import type { StoreState } from "../slices";
 import type {
@@ -969,13 +970,13 @@ describe("filter: ownership", () => {
     code: string,
     config: Record<string, number | boolean>,
   ) {
-    return filterOwnership(
-      state.metadata.cards[code],
-      state.metadata,
-      selectLookupTables(state),
-      config,
-      false, // TODO: test.
-    );
+    return filterOwnership({
+      card: state.metadata.cards[code],
+      metadata: state.metadata,
+      lookupTables: selectLookupTables(state),
+      collection: config,
+      showAllCards: false, // TODO: test.
+    });
   }
 
   it("handles case: pack owned", () => {

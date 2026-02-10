@@ -57,7 +57,7 @@ export function DeckCollectionFilters(props: Props) {
           id="deck-search-input"
           inputClassName={css["search-input"]}
           label={t("deck_collection.search_placeholder")}
-          onChangeValue={onSearchChange}
+          onValueChange={onSearchChange}
           placeholder={t("deck_collection.search_placeholder")}
           ref={searchRef}
           value={searchValue}

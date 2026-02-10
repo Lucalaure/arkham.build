@@ -60,89 +60,6 @@ const ACTION_TEXT: { [key: string]: string } = {
 
 export const ACTION_TEXT_ENTRIES = Object.entries(ACTION_TEXT);
 
-export type SkillKey =
-  | "agility"
-  | "combat"
-  | "intellect"
-  | "willpower"
-  | "wild";
-
-export const SKILL_KEYS: SkillKey[] = [
-  "willpower",
-  "intellect",
-  "combat",
-  "agility",
-  "wild",
-] as const;
-
-export type PlayerType =
-  | "investigator"
-  | "asset"
-  | "event"
-  | "skill"
-  | "location"
-  | "story"
-  | "treachery"
-  | "enemy"
-  | "key";
-
-export const PLAYER_TYPE_ORDER = [
-  "investigator",
-  "asset",
-  "event",
-  "skill",
-  "location",
-  "enemy",
-  "enemy_location",
-  "key",
-  "treachery",
-  "scenario",
-  "act",
-  "agenda",
-  "story",
-] as const;
-
-export const ASSET_SLOT_ORDER = [
-  "Hand",
-  "Hand x2",
-  "Accessory",
-  "Ally",
-  "Arcane",
-  "Arcane x2",
-  "Head",
-  "Body",
-  "Tarot",
-  // followed by:
-  // - multi_slot
-  // - permanent
-  // - Other
-];
-
-const SKILL_ICONS = [
-  "skill_agility",
-  "skill_combat",
-  "skill_intellect",
-  "skill_willpower",
-  "skill_wild",
-] as const;
-
-export type SkillIcon = (typeof SKILL_ICONS)[number];
-
-export const FACTION_ORDER = [
-  "guardian",
-  "seeker",
-  "rogue",
-  "mystic",
-  "survivor",
-  "neutral",
-  "mythos",
-  "multiclass",
-] as const;
-
-export type FactionName = (typeof FACTION_ORDER)[number];
-
-export const COMPARISON_OPERATOR = ["=", "!="] as const;
-
 export const SIDEWAYS_TYPE_CODES = ["act", "agenda", "investigator"];
 
 export const CYCLES_WITH_STANDALONE_PACKS = [
@@ -210,6 +127,11 @@ export const SPECIAL_CARD_CODES = {
   UNDERWORLD_SUPPORT: "08046",
   /** Weakness starts in spirit deck. */
   VENGEFUL_SHADE: "90053",
+  /** Exceptions for specialist logic. */
+  GENERIC_CUSTOM_INVESTIGATORS: [
+    "347ff5d0-8521-4d9b-a0fe-90c06114057d",
+    "c13c4114-0769-410c-864b-e43f5a596c0d",
+  ],
 };
 
 export const ORIENTATION_CHANGED_CARDS = ["85037", "85038"];

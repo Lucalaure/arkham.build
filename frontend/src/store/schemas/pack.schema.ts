@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const JsonDataPackSchema = z.object({
+  chapter: z.number().nullish(),
   code: z.string(),
   cycle_code: z.string(),
   date_release: z.string().nullish(),

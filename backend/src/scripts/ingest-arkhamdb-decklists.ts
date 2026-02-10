@@ -5,10 +5,11 @@ import { createReadStream, createWriteStream } from "node:fs";
 import { unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pipeline } from "node:stream/promises";
 import { parse } from "@fast-csv/parse";
 import type { Insertable, Transaction } from "kysely";
 import { connectionString, type Database, getDatabase } from "../db/db.ts";
-import { getAllCardResolutions } from "../db/queries/get-all-card-resolutions.ts";
+import { getAllCardResolutions } from "../db/queries/card-resolution.ts";
 import type { ArkhamdbDecklist, DB } from "../db/schema.types.ts";
 import { type Config, configFromEnv } from "../lib/config.ts";
 import { log } from "../lib/logger.ts";
@@ -266,31 +267,12 @@ async function downloadCsvFile(config: Config, name: string): Promise<string> {
   const res = await fetch(
     `${config.INGEST_URL_ARKHAMDB_DECKLISTS}/${name}.csv`,
   );
-
   if (!res.ok) throw new Error(`Failed to fetch ${name}: ${res.statusText}`);
 
+  assert(res.body, "Response body is null");
+
   const tempFilePath = join(tmpdir(), `${name}-${Date.now()}.csv`);
-  const writeStream = createWriteStream(tempFilePath);
-
-  await new Promise((resolve, reject) => {
-    assert(res.body, `Response body is null for ${name}`);
-
-    res.body.pipeTo(
-      new WritableStream({
-        write(chunk) {
-          writeStream.write(chunk);
-        },
-        close() {
-          writeStream.end();
-          resolve(undefined);
-        },
-        abort(error) {
-          writeStream.destroy();
-          reject(error);
-        },
-      }),
-    );
-  });
+  await pipeline(res.body, createWriteStream(tempFilePath));
 
   return tempFilePath;
 }

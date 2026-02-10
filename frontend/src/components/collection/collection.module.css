@@ -1,5 +1,5 @@
 .collection-label {
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -133,4 +133,23 @@
   padding: 0.25rem;
   border-radius: var(--rounded);
   min-width: 6ch;
+}
+
+.chapter-title {
+  display: inline-block;
+  font-size: var(--text-lg);
+  border-bottom: 1px solid var(--palette-4);
+}
+
+.chapter + .chapter {
+  margin-top: 1rem;
+}
+
+.chapter:not(:last-child) {
+  border-bottom: 1px solid var(--palette-1);
+  padding-bottom: 1rem;
+}
+
+.chapter > * + * {
+  margin-top: 1rem;
 }

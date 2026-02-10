@@ -1,3 +1,4 @@
+import type { Card } from "@arkham-build/shared";
 import { createSelector, createStructuredSelector } from "reselect";
 import { applyCardChanges } from "@/store/lib/card-edits";
 import {
@@ -9,7 +10,6 @@ import {
   filterOwnership,
 } from "@/store/lib/filtering";
 import type { ResolvedDeck } from "@/store/lib/types";
-import type { Card } from "@/store/schemas/card.schema";
 import {
   selectCollection,
   selectLookupTables,
@@ -67,7 +67,13 @@ export const selectAvailableUpgrades = createSelector(
 
     if (checkOwnership) {
       filters.push((c: Card) =>
-        filterOwnership(c, metadata, lookupTables, collection, false),
+        filterOwnership({
+          card: c,
+          metadata,
+          lookupTables,
+          collection,
+          showAllCards: false,
+        }),
       );
     }
 

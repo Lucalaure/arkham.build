@@ -3,7 +3,7 @@
   --blue: var(--nord-9);
 }
 
-html[data-theme="light"] .rules {
+html[data-theme="light"] {
   --blue: var(--nord-10);
 }
 
@@ -99,6 +99,18 @@ html[data-theme="light"] .rules {
 .toc ul {
   list-style-type: disc;
   padding-left: 1rem;
+}
+
+.toc a {
+  text-decoration: none;
+}
+
+html[data-theme="light"] .toc a {
+  color: var(--nord-10);
+}
+
+.rules-container > * + * {
+  margin-top: 1rem;
 }
 
 .rules {
