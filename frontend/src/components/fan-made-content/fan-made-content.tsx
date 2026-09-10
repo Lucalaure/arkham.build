@@ -8,6 +8,7 @@ import {
   BookDashedIcon,
   CheckIcon,
   CloudDownloadIcon,
+  DownloadIcon,
   ExternalLinkIcon,
   EyeIcon,
   FileJson2Icon,
@@ -34,6 +35,7 @@ import { queryFanMadeProjectData } from "@/store/services/requests/fan-made-proj
 import type { FanMadeContentFilter } from "@/store/slices/lists.types";
 import { assert } from "@/utils/assert";
 import { cx } from "@/utils/cx";
+import { download } from "@/utils/download";
 import { capitalize, formatDate } from "@/utils/formatting";
 import { fuzzyMatch, prepareNeedle } from "@/utils/fuzzy";
 import { isEmpty } from "@/utils/is-empty";
@@ -385,6 +387,19 @@ function Collection({ onAddProject, listingsQuery, filterFn }: RegistryProps) {
                   target="_blank"
                 >
                   <EyeIcon /> {t("fan_made_content.actions.view_cards")}
+                </Button>
+                <Button
+                  data-testid="collection-project-download"
+                  size="sm"
+                  onClick={() => {
+                    download(
+                      JSON.stringify(project, null, 2),
+                      `${meta.code}.json`,
+                      "application/json",
+                    );
+                  }}
+                >
+                  <DownloadIcon /> {t("fan_made_content.actions.download")}
                 </Button>
                 <Button
                   data-testid="collection-project-uninstall"

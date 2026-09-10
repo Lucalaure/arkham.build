@@ -1339,6 +1339,7 @@
     },
     "fan_made_content": {
       "actions": {
+        "download": "Download",
         "import_file": "Import from file",
         "import_url": "Import from URL",
         "install": "Install content",
